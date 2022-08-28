@@ -27,6 +27,16 @@ services:
       - .:/workspaces
       - GO_PKG_MOD:/go/pkg/mod
     entrypoint: golangci-lint run
+  # Service tidy updates the go.mod to the latest
+  tidy:
+    build:
+      context: .
+      dockerfile: ./.github/Dockerfile
+      args:
+        VARIANT: 1.16-alpine
+    volumes:
+      - .:/workspaces
+    entrypoint: [ "./.github/run_go_mod_tidy.sh" ]
   # Service v1_16 runs the tests on Go v1.16
   v1_16:
     build:

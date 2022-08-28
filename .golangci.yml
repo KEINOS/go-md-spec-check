@@ -1,0 +1,33 @@
+run:
+  tests: true
+  fast: true
+  build-tags:
+    - golangci
+  skip-dirs:
+    - .github
+  allow-parallel-runners: true
+
+output:
+  format: colored-line-number
+  sort-results: true
+
+linters:
+  enable-all: true
+  disable:
+  # Deprecated linters
+  - exhaustivestruct
+  - golint
+  - ifshort
+  - interfacer
+  - maligned
+  - scopelint
+  - nosnakecase
+  - structcheck
+  - deadcode
+  - varcheck
+  # Disabled to test private functions
+  - testpackage
+  # Allow to use global variables
+  - gochecknoglobals
+  # Allow camel-cased tags in struct tags
+  - tagliatelle

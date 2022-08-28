@@ -1,0 +1,20 @@
+[
+	{"version": "v0.30", "url": "https://spec.commonmark.org/0.30/spec.json", "date": "2021-06-19" },
+	{"version": "v0.29", "url": "https://spec.commonmark.org/0.29/spec.json", "date": "2019-04-06" },
+	{"version": "v0.28", "url": "https://spec.commonmark.org/0.28/spec.json", "date": "2017-08-01" },
+	{"version": "v0.27", "url": "https://spec.commonmark.org/0.27/spec.json", "date": "2016-11-18" },
+	{"version": "v0.26", "url": "https://spec.commonmark.org/0.26/spec.json", "date": "2016-07-15" },
+	{"version": "v0.25", "url": "https://spec.commonmark.org/0.25/spec.json", "date": "2016-03-24" },
+	{"version": "v0.24", "url": "https://spec.commonmark.org/0.24/spec.json", "date": "2016-01-12" },
+	{"version": "v0.23", "url": "https://spec.commonmark.org/0.23/spec.json", "date": "2015-12-29" },
+	{"version": "v0.22", "url": "https://spec.commonmark.org/0.22/spec.json", "date": "2015-08-23" },
+	{"version": "v0.21", "url": "https://spec.commonmark.org/0.21/spec.json", "date": "2015-07-14" },
+	{"version": "v0.20", "url": "https://spec.commonmark.org/0.20/spec.json", "date": "2015-06-08" },
+	{"version": "v0.19", "url": "https://spec.commonmark.org/0.19/spec.json", "date": "2015-04-27" },
+	{"version": "v0.18", "url": "https://spec.commonmark.org/0.18/spec.json", "date": "2015-03-03" },
+	{"version": "v0.17", "url": "https://spec.commonmark.org/0.17/spec.json", "date": "2015-01-24" },
+	{"version": "v0.16", "url": "https://spec.commonmark.org/0.16/spec.json", "date": "2015-01-14" },
+	{"version": "v0.15", "url": "https://spec.commonmark.org/0.15/spec.json", "date": "2014-12-31" },
+	{"version": "v0.14", "url": "https://spec.commonmark.org/0.14/spec.json", "date": "2014-12-10" },
+	{"version": "v0.13", "url": "https://spec.commonmark.org/0.13/spec.json", "date": "2014-12-10" }
+]

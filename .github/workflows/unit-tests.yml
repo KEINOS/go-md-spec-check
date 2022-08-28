@@ -24,12 +24,13 @@ jobs:
       - name: Create image tag from file hash
         uses: KEINOS/gh-action-hash-for-cache@main
         id: imagetag
-        # Udate the hash if Dockerfile/go.mod is changed or the month has changed.
+        # Udate the hash if the below files or the month has changed.
         with:
           path: |
             ./go.mod
+            ./go.sum
+            ./docker-compose.yml
             ./.github/Dockerfile
-            ./.github/docker-compose.yml
             ./.github/workflows/unit-tests.yml
           variant: $(TZ=UTC-9 date '+%Y%m')
 
@@ -43,11 +44,11 @@ jobs:
       - name: Load cached Docker images if any
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_16_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_17_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_18_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_19_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_latest_1.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_16_1.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_17_1.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_18_1.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_19_1.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_latest.tar
 
       - name: Pull base images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
@@ -62,25 +63,26 @@ jobs:
       - name: Build Docker images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          docker-compose --file ./.github/docker-compose.yml build
+          docker-compose build
 
       - name: Save/export built images to cache dir if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          rm -rf ${{ env.PATH_CACHE }}
           mkdir -p ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_16_1.tar github_v1_16:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_17_1.tar github_v1_17:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_18_1.tar github_v1_18:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_v1_19_1.tar github_v1_19:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/github_latest_1.tar github_latest:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_16_1.tar go-md-spec-check_v1_16:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_17_1.tar go-md-spec-check_v1_17:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_18_1.tar go-md-spec-check_v1_18:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_19_1.tar go-md-spec-check_v1_19:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_latest.tar go-md-spec-check_latest:latest
 
       - name: Run tests on Go 1.16
-        run: docker-compose --file ./.github/docker-compose.yml run v1_16
+        run: docker-compose run v1_16
       - name: Run tests on Go 1.17
-        run: docker-compose --file ./.github/docker-compose.yml run v1_17
+        run: docker-compose run v1_17
       - name: Run tests on Go 1.18
-        run: docker-compose --file ./.github/docker-compose.yml run v1_18
+        run: docker-compose run v1_18
       - name: Run tests on Go 1.19
-        run: docker-compose --file ./.github/docker-compose.yml run v1_19
+        run: docker-compose run v1_19
       - name: Run tests on latest Go
-        run: docker-compose --file ./.github/docker-compose.yml run latest
+        run: docker-compose run latest

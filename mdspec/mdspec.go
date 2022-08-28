@@ -132,7 +132,7 @@ func ListVersion() ([]string, error) {
 // filesystem.
 func loadFile(nameFile string) ([]byte, error) {
 	// Load the list of supported spec versions
-	pathFile := filepath.Join(nameDirSpecs, nameFile)
+	pathFile := filepath.ToSlash(filepath.Join(nameDirSpecs, nameFile))
 
 	jsonData, err := specFiles.ReadFile(pathFile)
 	if err != nil {
@@ -161,7 +161,7 @@ func getNamesFile(dir string) ([]string, error) {
 			continue
 		}
 
-		out = append(out, filepath.Join(dir, entry.Name()))
+		out = append(out, filepath.ToSlash(filepath.Join(dir, entry.Name())))
 	}
 
 	return out, nil

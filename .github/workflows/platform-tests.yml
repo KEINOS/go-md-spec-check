@@ -34,8 +34,10 @@ jobs:
         with:
           path: |
             ./go.mod
+            ./go.sum
+            ./docker-compose.yml
             ./.github/Dockerfile
-            ./.github/docker-compose.yml
+            ./.github/workflows/platform-tests.yml
           variant: ${{ runner.os }}$(TZ=UTC-9 date '+%Y%m')
 
       - name: Use Cache

@@ -50,7 +50,14 @@ func Example() {
 
 ## Statuses
 
+[![UnitTests](https://github.com/KEINOS/go-md-spec-check/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/KEINOS/go-md-spec-check/actions/workflows/unit-tests.yml)
+[![PlatformTests](https://github.com/KEINOS/go-md-spec-check/actions/workflows/platform-tests.yml/badge.svg)](https://github.com/KEINOS/go-md-spec-check/actions/workflows/platform-tests.yml)
+[![golangci-lint](https://github.com/KEINOS/go-md-spec-check/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/KEINOS/go-md-spec-check/actions/workflows/golangci-lint.yml)
+[![CodeQL-Analysis](https://github.com/KEINOS/go-md-spec-check/actions/workflows/codeQL-analysis.yml/badge.svg)](https://github.com/KEINOS/go-md-spec-check/actions/workflows/codeQL-analysis.yml)
+
+[![codecov](https://codecov.io/gh/KEINOS/go-md-spec-check/branch/main/graph/badge.svg?token=jW3haldEtr)](https://codecov.io/gh/KEINOS/go-md-spec-check)
 [![Go Report Card](https://goreportcard.com/badge/github.com/KEINOS/go-md-spec-check)](https://goreportcard.com/report/github.com/KEINOS/go-md-spec-check)
+[![Weekly Update](https://github.com/KEINOS/go-md-spec-check/actions/workflows/weekly-update.yml/badge.svg)](https://github.com/KEINOS/go-md-spec-check/actions/workflows/weekly-update.yml)
 
 ## Contributing
 

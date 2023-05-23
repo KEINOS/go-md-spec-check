@@ -1,12 +1,12 @@
 # Markdown Specification Checker for Go
 
-[![go1.16+](https://img.shields.io/badge/Go-1.16+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![go1.18+](https://img.shields.io/badge/Go-1.18+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document")
 
 [go-md-spec-check](https://github.com/KEINOS/go-md-spec-check) is a simple golang package that **checks if a function can convert Markdown to HTML according to the [CommonMark](https://commonmark.org/) specification**.
 
 ```go
-// go 1.16+
+// go 1.18+
 go get github.com/KEINOS/go-md-spec-check
 ```
 
@@ -61,7 +61,7 @@ func Example() {
 
 ## Contributing
 
-[![go1.16+](https://img.shields.io/badge/Go-1.16+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![go1.18+](https://img.shields.io/badge/Go-1.18+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document")
 [![Opened Issues](https://img.shields.io/github/issues/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/issues "opened issues")
 [![PR](https://img.shields.io/github/issues-pr/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/pulls "Pull Requests")

@@ -31,3 +31,17 @@ linters:
   - gochecknoglobals
   # Allow camel-cased tags in struct tags
   - tagliatelle
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        # List of allowed packages.
+        allow:
+          # Standard go packages
+          - $gostd
+          # Required for testing
+          - github.com/stretchr/testify
+          - github.com/KEINOS/go-md-spec-check/mdspec
+          # Deprecated but still using for easy error handling
+          - github.com/pkg/errors

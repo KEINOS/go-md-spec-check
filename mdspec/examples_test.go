@@ -7,10 +7,14 @@ import (
 	"github.com/KEINOS/go-md-spec-check/mdspec"
 )
 
+//nolint:revive // markdown in myMarkdownParser is not used but keeping it for example purposes.
 func Example() {
 	// Sample Markdown-to-HTML conversion function that does not do its job.
 	myMarkdownParser := func(markdown string) (string, error) {
-		return "<p>Hello, World!</p>", nil
+		// Do something with the given markdown and return the parsed HTML.
+		parsedHTML := "<p>Hello, World!</p>"
+
+		return parsedHTML, nil
 	}
 
 	// Check if the `myMarkdownParser()` complies with the CommonMark specification

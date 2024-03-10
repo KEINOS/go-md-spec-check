@@ -223,8 +223,8 @@ func TestSpecCheck_spec_version_error(t *testing.T) {
 		jsonUnmarshal = oldJSONUnmarshal
 	}()
 
-	// Mock/monkey patch functions
-	jsonUnmarshal = func(data []byte, v interface{}) error {
+	// Mock/monkey patch functions to force an error
+	jsonUnmarshal = func(_ []byte, _ interface{}) error {
 		return errors.New("forced error")
 	}
 

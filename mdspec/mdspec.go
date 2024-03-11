@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"regexp"
 
 	"github.com/pkg/errors"
+	"golang.org/x/mod/semver"
 )
 
 // Embed JSON files under _spec into the binary.
@@ -95,9 +95,11 @@ func isValidFormatVer(verInput string) bool {
 		return true
 	}
 
-	re := regexp.MustCompile("^v[0-9]+.[0-9]+$")
+	// re := regexp.MustCompile("^v[0-9]+.[0-9]+$")
 
-	return re.MatchString(verInput)
+	// return re.MatchString(verInput)
+
+	return semver.IsValid(verInput)
 }
 
 // ListVersion returns a list of all available versions of the specification.

@@ -46,10 +46,11 @@ func Test_isValidFormatVer(t *testing.T) {
 		// Valid cases
 		{"latest", true},
 		{"v0.14", true},
+		{"v0.31.2", true},
+		{"v1.14.0", true},
+		{"v1", true},
 		// Invalid cases
-		{"v1.14.0", false},
 		{"0.14", false},
-		{"v1", false},
 		{"version 1.14", false},
 		{"vvvv1.14", false},
 		{"v0.14\n", false},
@@ -241,11 +242,11 @@ func TestSpecCheck_spec_version_error(t *testing.T) {
 	})
 
 	t.Run("unsupported spec version", func(t *testing.T) {
-		err := SpecCheck("v0.01", myDummyFunc)
+		err := SpecCheck("v0.1", myDummyFunc)
 
 		require.Error(t, err, "unsupported spec version should not return an error")
 		assert.Contains(t, err.Error(), "spec file not found")
-		assert.Contains(t, err.Error(), "spec_v0.01.json")
+		assert.Contains(t, err.Error(), "spec_v0.1.json")
 	})
 
 	t.Run("unsupported spec version", func(t *testing.T) {

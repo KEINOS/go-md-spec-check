@@ -16,13 +16,27 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/pkg/errors"
 )
 
-// FileMode600 is the file mode for files created by this program.
-const FileMode600 = os.FileMode(0o600)
+const (
+	// FileMode600 is the file mode for files created by this program.
+	FileMode600 = os.FileMode(0o600)
+	// currentHash is the hash value of the spec page last checked.
+	currentHash = "584ce77e30ef9594" // last checked on 2024-03-11
+	// urlSpecLatest is the URL of the spec page with the current latest spec.
+	urlSpecLatest = "https://spec.commonmark.org/current/"
+)
 
 func main() {
+	// Check if the official spec page has been modified.
+	if !IsUpToDate(currentHash) {
+		fmt.Println("Official spec page has been modified. The latest spec mey not be up to date.")
+
+		os.Exit(1)
+	}
+
 	// Get the spec information from the embedded file system.
 	listJSON, err := os.ReadFile("spec_list.json")
 	ExitOnError(err)
@@ -47,6 +61,55 @@ func main() {
 
 		//nolint:forbidigo // not an output for debugging
 		fmt.Println("ok")
+	}
+}
+
+// IsUpToDate returns true if the given hash matches with the hash value from the latest spec
+// page https://spec.commonmark.org/current/.
+//
+// The hash algorithm used is xxHash3.
+func IsUpToDate(currentHash string) bool {
+	body, err := requestGet(urlSpecLatest)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+
+		return false
+	}
+
+	latestHash := fmt.Sprintf("%x", xxhash.Sum64(body))
+
+	if currentHash == latestHash {
+		return true
+	}
+
+	fmt.Println("* Spec page URL:", urlSpecLatest)
+	fmt.Println("* Current hash :", currentHash)
+	fmt.Println("* Latest hash  :", latestHash)
+
+	return false
+}
+
+// DownloadFile downloads a file from the urlTarget and saves it to pathOut.
+func DownloadFile(urlTarget string, pathOut string) error {
+	body, err := requestGet(urlTarget)
+	if err != nil {
+		return errors.Wrap(err, "failed to download file")
+	}
+
+	if err := os.WriteFile(pathOut, body, FileMode600); err != nil {
+		return errors.Wrap(err, "failed to create file")
+	}
+
+	return nil
+}
+
+// ExitOnError exits the program if the error is not nil.
+func ExitOnError(err error) {
+	if err != nil {
+		//nolint:forbidigo // not an output for debugging
+		fmt.Println("error")
+
+		log.Fatal(err)
 	}
 }
 
@@ -84,28 +147,4 @@ func requestGet(urlTarget string) ([]byte, error) {
 	}
 
 	return result, nil
-}
-
-// DownloadFile downloads a file from the urlTarget and saves it to pathOut.
-func DownloadFile(urlTarget string, pathOut string) error {
-	body, err := requestGet(urlTarget)
-	if err != nil {
-		return errors.Wrap(err, "failed to download file")
-	}
-
-	if err := os.WriteFile(pathOut, body, FileMode600); err != nil {
-		return errors.Wrap(err, "failed to create file")
-	}
-
-	return nil
-}
-
-// ExitOnError exits the program if the error is not nil.
-func ExitOnError(err error) {
-	if err != nil {
-		//nolint:forbidigo // not an output for debugging
-		fmt.Println("error")
-
-		log.Fatal(err)
-	}
 }

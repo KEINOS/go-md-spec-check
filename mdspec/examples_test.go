@@ -40,6 +40,7 @@ func ExampleListVersion() {
 		fmt.Println(v)
 	}
 	// Output:
+	// v0.31.2
 	// v0.30
 	// v0.29
 	// v0.28

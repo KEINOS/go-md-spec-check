@@ -52,7 +52,7 @@ func Example() {
 
 - [View it online](https://go.dev/play/p/cvzhbhEx_QG) @ Go Playground
 - Supported CommonMark spec versions:
-  - CommonMark [v0.13](https://spec.commonmark.org/0.13/) to [v0.30](https://spec.commonmark.org/0.30/) ([latest](https://spec.commonmark.org/current/))
+  - CommonMark [v0.13](https://spec.commonmark.org/0.13/) to [latest](https://spec.commonmark.org/current/))
 - References on CommonMark:
   - [Markdown Reference](https://commonmark.org/help/) @ commonmark.org
   - [CommonMark specs](https://spec.commonmark.org/) @ spec.commonmark.org

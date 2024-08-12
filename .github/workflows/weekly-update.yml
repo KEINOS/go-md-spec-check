@@ -31,19 +31,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Update go.mod and go.sum on Go 1.16 env
+      - name: Update go.mod and go.sum on minimum supported Go version
         run: |
           set -eu
-          docker-compose run tidy
+          docker compose run tidy
 
       - name: Run tests in latest Go version
         run: |
           set -eu
-          docker-compose run latest
+          docker compose run latest
 
       - name: Create Pull Request on Change
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v6
         with:
             token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}

@@ -1,6 +1,6 @@
 # Unit testing on vaious Go versions, such as Go 1.18 and later.
 #
-# This workflow caches images built with Docker and docker-compose to speed up its execution.
+# This workflow caches images built with Docker and docker compose to speed up its execution.
 name: UnitTests
 
 on:
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Create image tag from file hash
         uses: KEINOS/gh-action-hash-for-cache@main
@@ -36,7 +36,7 @@ jobs:
 
       - name: Enable Cache
         id: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.PATH_CACHE }}
           key: ${{ steps.imagetag.outputs.hash }}
@@ -44,35 +44,30 @@ jobs:
       - name: Load cached Docker images if any
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_18_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_19_1.tar
-          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_latest.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check-min.tar
+          docker load --input ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check-latest.tar
 
       - name: Pull base images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           : # Pull images one-by-one for stability
           docker pull golang:1.18-alpine
-          docker pull golang:1.19-alpine
           docker pull golang:alpine
 
       - name: Build Docker images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          docker-compose build
+          docker compose build
 
       - name: Save/export built images to cache dir if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           rm -rf ${{ env.PATH_CACHE }}
           mkdir -p ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_18_1.tar go-md-spec-check_v1_18:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_v1_19_1.tar go-md-spec-check_v1_19:latest
-          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check_latest.tar go-md-spec-check_latest:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check-min.tar go-md-spec-check-min:latest
+          docker save --output ${{ env.PATH_CACHE }}/${{ steps.imagetag.outputs.hash }}/go-md-spec-check-latest.tar go-md-spec-check-latest:latest
 
-      - name: Run tests on Go 1.18
-        run: docker-compose run v1_18
-      - name: Run tests on Go 1.19
-        run: docker-compose run v1_19
+      - name: Run tests on minimum supported Go version
+        run: docker compose run min
       - name: Run tests on latest Go
-        run: docker-compose run latest
+        run: docker compose run latest

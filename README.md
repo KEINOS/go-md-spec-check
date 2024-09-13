@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD041 -->
-[![go1.18+](https://img.shields.io/badge/Go-1.18+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![go1.22+](https://img.shields.io/badge/Go-1.22+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document online")
 
 # Markdown Specification Checker for Go
@@ -9,7 +9,7 @@
 ## Usage
 
 ```go
-// Download module (go 1.18+)
+// Download module (go 1.22+)
 go get github.com/KEINOS/go-md-spec-check
 ```
 
@@ -36,7 +36,7 @@ func Example() {
 
     // Check if the `myMarkdownParser()` complies with the CommonMark specification
     // version 0.30.
-    // Choices: "v0.13", "v0.14" ... "v0.30"
+    // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2"
     err := mdspec.SpecCheck("v0.30", myMarkdownParser)
 
     if err != nil {
@@ -59,7 +59,7 @@ func Example() {
 
 ## Contributing
 
-[![go1.18+](https://img.shields.io/badge/Go-1.18+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![go1.22+](https://img.shields.io/badge/Go-1.22+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document")
 [![Opened Issues](https://img.shields.io/github/issues/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/issues "opened issues")
 [![PR](https://img.shields.io/github/issues-pr/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/pulls "Pull Requests")

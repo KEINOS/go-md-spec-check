@@ -1,4 +1,4 @@
-# Unit testing on vaious Go versions, such as Go 1.18 and later.
+# Unit testing on vaious Go versions, such as Go 1.22 and latest.
 #
 # This workflow caches images built with Docker and docker compose to speed up its execution.
 name: UnitTests
@@ -50,9 +50,8 @@ jobs:
       - name: Pull base images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          : # Pull images one-by-one for stability
-          docker pull golang:1.18-alpine
-          docker pull golang:alpine
+          : # Pull images ahead for stability
+          docker compose pull
 
       - name: Build Docker images if no-cache
         if: steps.cache.outputs.cache-hit != 'true'

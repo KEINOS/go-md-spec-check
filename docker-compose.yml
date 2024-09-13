@@ -1,5 +1,5 @@
 # =============================================================================
-# Docker Compose file for testing on Go versions 1.18 to the latest.
+# Docker Compose file for testing on Go versions 1.22 to the latest.
 # =============================================================================
 # Usage:
 #     $ # Build all the containers
@@ -8,8 +8,8 @@
 #     $ # Run lint check/static analysis with golangci-lint
 #     $ docker compose run --rm lint
 #
-#     $ # Run unit tests on Go 1.18
-#     $ docker compose run --rm v1_18
+#     $ # Run unit tests on minimum supported Go version
+#     $ docker compose run --rm min
 #
 #     $ # Run unit tests on latest Go version
 #     $ docker compose run --rm latest
@@ -31,7 +31,7 @@ services:
       context: .
       dockerfile: ./.github/Dockerfile
       args:
-        VARIANT: 1.18-alpine
+        VARIANT: 1.22-alpine
     volumes:
       - .:/workspaces
     entrypoint: [ "./.github/run_go_mod_tidy.sh" ]
@@ -41,7 +41,7 @@ services:
       context: .
       dockerfile: ./.github/Dockerfile
       args:
-        VARIANT: 1.18-alpine
+        VARIANT: 1.22-alpine
     volumes:
       - .:/workspaces
       - GO_PKG_MOD:/go/pkg/mod

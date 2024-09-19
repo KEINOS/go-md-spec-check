@@ -18,7 +18,7 @@ cp go.mod go.mod.bak
 cp go.sum go.sum.bak
 
 echo '* Run go tidy ...'
-go mod tidy -go=1.22
+go mod tidy -go=1.22.0
 
 echo '* Run tests ...'
 go test ./... && {

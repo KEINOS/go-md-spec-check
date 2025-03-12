@@ -25,11 +25,12 @@ linters:
   #- structcheck
   #- deadcode
   #- varcheck
+  #- execinquery
+  #- gomnd
+  #- exportloopref
   #
-  # Disable deprecated linters
-  - execinquery
-  - gomnd
-  - exportloopref
+  # Disable deprecated/abandoned linters
+  - tenv
   # Disabled to test private functions
   - testpackage
   # Allow to use global variables
@@ -49,4 +50,7 @@ linters-settings:
           - github.com/stretchr/testify
           - github.com/KEINOS/go-md-spec-check/mdspec
           # Deprecated but still using for easy error handling
+          # 2025/03/12: we should fork and maintain this package
           - github.com/pkg/errors
+          # Required for versioning check
+          - golang.org/x/mod/semver

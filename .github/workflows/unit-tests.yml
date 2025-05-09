@@ -68,5 +68,6 @@ jobs:
 
       - name: Run tests on minimum supported Go version
         run: docker compose run min
+
       - name: Run tests on latest Go
         run: docker compose run latest

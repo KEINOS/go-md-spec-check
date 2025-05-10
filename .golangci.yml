@@ -1,56 +1,56 @@
+# This file contains configuration options for GolangCI-Lint.
+#
+# - It requires latestgolangci-lint.
+# - Available linters see: https://golangci-lint.run/usage/linters/
+# - Sample of config see: https://golangci-lint.run/usage/configuration/#config-file
+# Options for analysis running
+
+version: "2"
+
 run:
+  # Include test files.
   tests: true
+
+  # List of build tags, all linters use it. Default is empty list.
   build-tags:
     - golangci
+
+  # Allow multiple parallel golangci-lint instances running.
   allow-parallel-runners: true
 
-issues:
-  exclude-dirs:
-    - .github
-
-output:
-  sort-results: true
-
+# Enabled all linters. Conf settings may follow.
 linters:
-  enable-all: true
-  disable:
-  # Remove deprecated and deactivated linters
-  #- exhaustivestruct
-  #- golint
-  #- ifshort
-  #- interfacer
-  #- maligned
-  #- scopelint
-  #- nosnakecase
-  #- structcheck
-  #- deadcode
-  #- varcheck
-  #- execinquery
-  #- gomnd
-  #- exportloopref
-  #
-  # Disable deprecated/abandoned linters
-  - tenv
-  # Disabled to test private functions
-  - testpackage
-  # Allow to use global variables
-  - gochecknoglobals
-  # Allow camel-cased tags in struct tags
-  - tagliatelle
+  # Which dirs to skip. Issues from them won't be reported.
+  exclusions:
+    paths:
+      - .github
+  default: all
 
-linters-settings:
-  depguard:
-    rules:
-      main:
-        # List of allowed packages.
-        allow:
-          # Standard go packages
-          - $gostd
-          # Required for testing
-          - github.com/stretchr/testify
-          - github.com/KEINOS/go-md-spec-check/mdspec
-          # Deprecated but still using for easy error handling
-          # 2025/03/12: we should fork and maintain this package
-          - github.com/pkg/errors
-          # Required for versioning check
-          - golang.org/x/mod/semver
+  disable:
+  # Remove deactivated linters
+  # - deadcode
+  # - execinquery
+  # - exhaustivestruct
+  # - golint
+  # - gomnd
+  # - ifshort
+  # - interfacer
+  # - maligned
+  # - nosnakecase
+  # - scopelint
+  # - structcheck
+  # - varcheck
+  # - exportloopref
+  # - tenv
+  # Disable deprecated/abandoned linters
+  # Disabled because of testing private functions
+  - testpackage
+
+  # Disable lints à la carte
+  #
+  # Disable camelCase JSON tag due to the original spec is in snake_case
+  - tagliatelle
+  # We allow global variable for testing purposes
+  - gochecknoglobals
+  # Disabled due to the use of external packages
+  - depguard

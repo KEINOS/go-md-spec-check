@@ -1,3 +1,8 @@
+/*
+Package mdspec provides a way to check if a given function complies with the
+CommonMark specification using official test cases. It also provides a way to
+list all available versions of the specification.
+*/
 package mdspec
 
 import (

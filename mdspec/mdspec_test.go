@@ -101,6 +101,7 @@ func TestListVersion_contains_all(t *testing.T) {
 func TestListVersion_fail_to_unmarshal(t *testing.T) {
 	// Backup and defer restore the file name
 	oldJSONUnmarshal := jsonUnmarshal
+
 	defer func() {
 		jsonUnmarshal = oldJSONUnmarshal
 	}()
@@ -121,6 +122,7 @@ func TestListVersion_fail_to_unmarshal(t *testing.T) {
 func TestListVersion_non_existing_dir(t *testing.T) {
 	// Backup and defer restore the file name
 	oldNameFileSpecList := nameFileSpecList
+
 	defer func() {
 		nameFileSpecList = oldNameFileSpecList
 	}()
@@ -220,6 +222,7 @@ func TestSpecCheck_function_error(t *testing.T) {
 func TestSpecCheck_spec_version_error(t *testing.T) {
 	// Backup and defer restore functions
 	oldJSONUnmarshal := jsonUnmarshal
+
 	defer func() {
 		jsonUnmarshal = oldJSONUnmarshal
 	}()

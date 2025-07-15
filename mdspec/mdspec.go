@@ -61,7 +61,8 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 		ExampleNum int    `json:"example"`
 	}{}
 
-	if err := jsonUnmarshal(jsonSpec, &listTests); err != nil {
+	err = jsonUnmarshal(jsonSpec, &listTests)
+	if err != nil {
 		return errors.Wrap(err, "failed to parse list of supported spec versions")
 	}
 
@@ -121,7 +122,8 @@ func ListVersion() ([]string, error) {
 		DateEnactment string `json:"date"`
 	}{}
 
-	if err := jsonUnmarshal(jsonList, &objList); err != nil {
+	err = jsonUnmarshal(jsonList, &objList)
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse list of supported spec versions")
 	}
 

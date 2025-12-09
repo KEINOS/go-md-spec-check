@@ -230,6 +230,7 @@ func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, e
 	errGroup.SetLimit(maxConcurrency)
 
 	for _, testCase := range testCases {
+		// As of Go 1.22+, loop variables are captured by value in closures.
 		errGroup.Go(func() error {
 			return runSingleTest(testCase, yourFunc)
 		})

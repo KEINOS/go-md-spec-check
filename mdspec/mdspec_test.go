@@ -107,7 +107,7 @@ func TestListVersion_fail_to_unmarshal(t *testing.T) {
 	}()
 
 	// Mock/monkey patch to force an error
-	jsonUnmarshal = func([]byte, interface{}) error {
+	jsonUnmarshal = func([]byte, any) error {
 		return errors.New("forced error")
 	}
 
@@ -228,7 +228,7 @@ func TestSpecCheck_spec_version_error(t *testing.T) {
 	}()
 
 	// Mock/monkey patch functions to force an error
-	jsonUnmarshal = func(_ []byte, _ interface{}) error {
+	jsonUnmarshal = func(_ []byte, _ any) error {
 		return errors.New("forced error")
 	}
 

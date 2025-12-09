@@ -1,8 +1,8 @@
 package mdspec
 
 import (
-	"fmt"
 	"math/rand/v2"
+	"strconv"
 	"testing"
 	"time"
 
@@ -62,7 +62,9 @@ func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
 	limits := []int{2, 4, 8, 16}
 
 	for _, limit := range limits {
-		b.Run(fmt.Sprintf("%d", limit), func(b *testing.B) {
+		title := "CustomLimit_" + strconv.Itoa(limit)
+
+		b.Run(title, func(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {

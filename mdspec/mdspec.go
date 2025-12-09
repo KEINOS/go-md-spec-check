@@ -224,7 +224,7 @@ func runSingleTest(testCase TestCase, yourFunc func(string) (string, error)) err
 func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, error), maxConcurrency int) error {
 	errGroup, ctx := errgroup.WithContext(context.Background())
 
-	if maxConcurrency <= 0 {
+	if maxConcurrency == 0 {
 		maxConcurrency = runtime.GOMAXPROCS(0)
 	}
 

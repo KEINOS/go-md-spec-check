@@ -71,6 +71,10 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 //
 //   - If "maxConcurrency = -1", the tests will not run concurrently (runs sequentially).
 //   - If "maxConcurrency = 0", it will automatically optimize the concurrency.
+//
+// If your function is lightning fast (< 5μs/call), running tests concurrently may not
+// yield performance benefits due to overhead of preparing goroutines and context switching.
+// In such cases, consider using "maxConcurrency = -1" to run tests sequentially.
 func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string, error), maxConcurrency int) error {
 	const noConcurrency = -1
 

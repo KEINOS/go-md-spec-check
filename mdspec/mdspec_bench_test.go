@@ -11,9 +11,10 @@ import (
 // BenchmarkSpecCheckWithConcurrency_Sequential benchmarks sequential execution
 // with maxConcurrency=-1.
 func BenchmarkSpecCheckWithConcurrency(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
 
 	// Create a function that returns correct results
+	//nolint:unparam // error is always nil in this benchmark
 	correctFunc := func(markdown string) (string, error) {
 		randomDelay(5, 10) // Simulate some processing delay
 
@@ -46,9 +47,10 @@ func BenchmarkSpecCheckWithConcurrency(b *testing.B) {
 // BenchmarkSpecCheckWithConcurrency_CustomLimit benchmarks concurrent execution
 // with various custom concurrency limits.
 func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
 
 	// Create a function that returns correct results
+	//nolint:unparam // error is always nil in this benchmark
 	correctFunc := func(markdown string) (string, error) {
 		randomDelay(5, 10) // Simulate some processing delay
 
@@ -75,7 +77,7 @@ func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
 // BenchmarkSpecCheck_DefaultBehavior benchmarks the default SpecCheck function
 // which uses auto-optimized concurrency.
 func BenchmarkSpecCheck_DefaultBehavior(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
 
 	// Create a function that returns correct results
 	correctFunc := func(markdown string) (string, error) {
@@ -94,7 +96,12 @@ func BenchmarkSpecCheck_DefaultBehavior(b *testing.B) {
 	b.ReportMetric(float64(len(testCases)), "testcases")
 }
 
+// ============================================================================
+//  Helper Functions for Benchmarks
+// ============================================================================
+
 func randomDelay(minMicros, maxMicros int) {
+	//nolint:gosec // weak random is acceptable for benchmarking purposes
 	delay := minMicros + rand.IntN(maxMicros-minMicros+1)
 	time.Sleep(time.Duration(delay) * time.Microsecond)
 }

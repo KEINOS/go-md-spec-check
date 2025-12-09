@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const latestSpecFile = "spec_v0.13.json"
+
 // ----------------------------------------------------------------------------
 //  getNamesFile()
 // ----------------------------------------------------------------------------
@@ -142,13 +144,6 @@ func TestListVersion_non_existing_dir(t *testing.T) {
 // ----------------------------------------------------------------------------
 //  SpecCheck()
 // ----------------------------------------------------------------------------
-
-func convAsKey(s string) string {
-	//nolint:gosec // use of md5 is intentional. not for cryptographic purposes
-	h := md5.Sum([]byte(s))
-
-	return hex.EncodeToString(h[:])
-}
 
 func TestSpecCheck_goledn(t *testing.T) {
 	t.Parallel()
@@ -370,31 +365,10 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 //  SpecCheckWithConcurrency() tests
 // ----------------------------------------------------------------------------
 
-// prepareTestCasesMap loads test cases and creates a map for lookup.
-func prepareTestCasesMap(tb testing.TB, specFile string) ([]TestCase, map[string]string) {
-	tb.Helper()
-
-	jsonSpec, err := loadFile(specFile)
-	require.NoError(tb, err, "failed to load spec file")
-
-	var testCases []TestCase
-
-	require.NoError(tb, jsonUnmarshal(jsonSpec, &testCases),
-		"failed to unmarshal test cases",
-	)
-
-	expectedResults := make(map[string]string, len(testCases))
-	for _, tc := range testCases {
-		expectedResults[tc.Markdown] = tc.HTML
-	}
-
-	return testCases, expectedResults
-}
-
 func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
 
 	var (
 		executionCount atomic.Int32
@@ -447,7 +421,7 @@ func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
 
 	var (
 		executionCount atomic.Int32
@@ -505,7 +479,7 @@ func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
 
 	var executionCount atomic.Int32
 
@@ -548,4 +522,38 @@ func TestSpecCheckWithConcurrency_error_propagation(t *testing.T) {
 	err = SpecCheckWithConcurrency("v0.13", errorFunc, 2)
 	require.Error(t, err, "should propagate error in concurrent mode")
 	assert.Contains(t, err.Error(), "intentional error")
+}
+
+// ============================================================================
+//  Helpers for tests
+// ============================================================================
+
+func convAsKey(s string) string {
+	//nolint:gosec // use of md5 is intentional. not for cryptographic purposes
+	h := md5.Sum([]byte(s))
+
+	return hex.EncodeToString(h[:])
+}
+
+// prepareTestCasesMap loads test cases and creates a map for lookup.
+//
+//nolint:unparam // it always receives "spec_V0.13.json" for now
+func prepareTestCasesMap(tb testing.TB, specFile string) ([]TestCase, map[string]string) {
+	tb.Helper()
+
+	jsonSpec, err := loadFile(specFile)
+	require.NoError(tb, err, "failed to load spec file")
+
+	var testCases []TestCase
+
+	require.NoError(tb, jsonUnmarshal(jsonSpec, &testCases),
+		"failed to unmarshal test cases",
+	)
+
+	expectedResults := make(map[string]string, len(testCases))
+	for _, tc := range testCases {
+		expectedResults[tc.Markdown] = tc.HTML
+	}
+
+	return testCases, expectedResults
 }

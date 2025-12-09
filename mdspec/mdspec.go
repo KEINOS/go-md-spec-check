@@ -222,7 +222,7 @@ func runSingleTest(testCase TestCase, yourFunc func(string) (string, error)) err
 // concurrency limit. If maxConcurrency is 0, it defaults to runtime.GOMAXPROCS(0),
 // which in Go 1.25+ is automatically optimized for container environments.
 func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, error), maxConcurrency int) error {
-	errGroup, ctx := errgroup.WithContext(context.Background())
+	errGroup, _ := errgroup.WithContext(context.Background())
 
 	if maxConcurrency == 0 {
 		maxConcurrency = runtime.GOMAXPROCS(0)
@@ -236,5 +236,10 @@ func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, e
 		})
 	}
 
-	return errors.Wrap(errGroup.Wait(), "failed to run tests concurrently")
+	err := errGroup.Wait()
+	if err != nil {
+		return errors.Wrap(err, "one or more tests failed")
+	}
+
+	return nil
 }

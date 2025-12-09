@@ -365,3 +365,187 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 
 	t.Logf("Successfully executed %d test cases concurrently", executionCount.Load())
 }
+
+// ----------------------------------------------------------------------------
+//  SpecCheckWithConcurrency() tests
+// ----------------------------------------------------------------------------
+
+// prepareTestCasesMap loads test cases and creates a map for lookup.
+func prepareTestCasesMap(t *testing.T, specFile string) ([]TestCase, map[string]string) {
+	t.Helper()
+
+	jsonSpec, err := loadFile(specFile)
+	require.NoError(t, err, "failed to load spec file")
+
+	var testCases []TestCase
+
+	require.NoError(t, jsonUnmarshal(jsonSpec, &testCases),
+		"failed to unmarshal test cases",
+	)
+
+	expectedResults := make(map[string]string, len(testCases))
+	for _, tc := range testCases {
+		expectedResults[tc.Markdown] = tc.HTML
+	}
+
+	return testCases, expectedResults
+}
+
+func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
+	t.Parallel()
+
+	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+
+	var (
+		executionCount  atomic.Int32
+		maxConcurrent   atomic.Int32
+		currentRunning  atomic.Int32
+	)
+
+	// Function that tracks execution and should run sequentially
+	trackingFunc := func(markdown string) (string, error) {
+		current := currentRunning.Add(1)
+		executionCount.Add(1)
+
+		// Track max concurrent
+		for {
+			maxVal := maxConcurrent.Load()
+			if current <= maxVal || maxConcurrent.CompareAndSwap(maxVal, current) {
+				break
+			}
+		}
+
+		// Small delay to ensure overlap would be detected if it happened
+		time.Sleep(1 * time.Millisecond)
+
+		currentRunning.Add(-1)
+
+		result, ok := expectedResults[markdown]
+		if !ok {
+			return "", errors.New("unexpected markdown")
+		}
+
+		return result, nil
+	}
+
+	// Run with maxConcurrency=-1 (sequential)
+	err := SpecCheckWithConcurrency("v0.13", trackingFunc, -1)
+	require.NoError(t, err, "sequential execution should succeed")
+
+	// Verify all tests were executed
+	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+		"all test cases should be executed")
+
+	// Verify sequential execution (max concurrent should be 1)
+	assert.Equal(t, int32(1), maxConcurrent.Load(),
+		"sequential execution should have max concurrency of 1, got %d", maxConcurrent.Load())
+
+	t.Logf("Sequential execution: %d test cases with max concurrency=%d",
+		executionCount.Load(), maxConcurrent.Load())
+}
+
+func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
+	t.Parallel()
+
+	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+
+	var (
+		executionCount atomic.Int32
+		maxConcurrent  atomic.Int32
+		currentRunning atomic.Int32
+	)
+
+	trackingFunc := func(markdown string) (string, error) {
+		current := currentRunning.Add(1)
+		executionCount.Add(1)
+
+		// Track max concurrent
+		for {
+			maxVal := maxConcurrent.Load()
+			if current <= maxVal || maxConcurrent.CompareAndSwap(maxVal, current) {
+				break
+			}
+		}
+
+		// Delay to increase chance of concurrent execution
+		time.Sleep(5 * time.Millisecond)
+
+		currentRunning.Add(-1)
+
+		result, ok := expectedResults[markdown]
+		if !ok {
+			return "", errors.New("unexpected markdown")
+		}
+
+		return result, nil
+	}
+
+	// Test with custom concurrency limit
+	customLimit := 3
+	err := SpecCheckWithConcurrency("v0.13", trackingFunc, customLimit)
+	require.NoError(t, err, "custom concurrency execution should succeed")
+
+	// Verify all tests were executed
+	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+		"all test cases should be executed")
+
+	// Verify concurrency was limited to custom value
+	assert.LessOrEqual(t, maxConcurrent.Load(), int32(customLimit),
+		"max concurrency should not exceed custom limit of %d, got %d",
+		customLimit, maxConcurrent.Load())
+
+	assert.GreaterOrEqual(t, maxConcurrent.Load(), int32(2),
+		"should have at least 2 concurrent executions with limit=%d, got %d",
+		customLimit, maxConcurrent.Load())
+
+	t.Logf("Custom concurrency (limit=%d): %d test cases with max observed=%d",
+		customLimit, executionCount.Load(), maxConcurrent.Load())
+}
+
+func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
+	t.Parallel()
+
+	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
+
+	var executionCount atomic.Int32
+
+	trackingFunc := func(markdown string) (string, error) {
+		executionCount.Add(1)
+
+		result, ok := expectedResults[markdown]
+		if !ok {
+			return "", errors.New("unexpected markdown")
+		}
+
+		return result, nil
+	}
+
+	// Test with maxConcurrency=0 (auto-optimize)
+	err := SpecCheckWithConcurrency("v0.13", trackingFunc, 0)
+	require.NoError(t, err, "auto-optimized execution should succeed")
+
+	// Verify all tests were executed
+	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+		"all test cases should be executed")
+
+	t.Logf("Auto-optimized execution: %d test cases (GOMAXPROCS=%d)",
+		executionCount.Load(), runtime.GOMAXPROCS(0))
+}
+
+func TestSpecCheckWithConcurrency_error_propagation(t *testing.T) {
+	t.Parallel()
+
+	errorFunc := func(_ string) (string, error) {
+		return "", errors.New("intentional error")
+	}
+
+	// Test with sequential execution
+	err := SpecCheckWithConcurrency("v0.13", errorFunc, -1)
+	require.Error(t, err, "should propagate error in sequential mode")
+	assert.Contains(t, err.Error(), "intentional error")
+
+	// Test with concurrent execution
+	err = SpecCheckWithConcurrency("v0.13", errorFunc, 2)
+	require.Error(t, err, "should propagate error in concurrent mode")
+	assert.Contains(t, err.Error(), "intentional error")
+}

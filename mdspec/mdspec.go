@@ -63,6 +63,17 @@ type TestCase struct {
 //
 //	err := mdspec.SpecCheck("v1.14", myFunc)
 func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error {
+	return SpecCheckWithConcurrency(specVersion, yourFunc, defaultConcurrency)
+}
+
+// SpecCheckWithConcurrency is same as SpecCheck but allows specifying the maximum
+// number of concurrent goroutines for spec test execution.
+//
+//   - If "maxConcurrency = -1", the tests will not run concurrently (runs sequentially).
+//   - If "maxConcurrency = 0", it will automatically optimize the concurrency.
+func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string, error), maxConcurrency int) error {
+	const noConcurrency = -1
+
 	if !isValidFormatVer(specVersion) {
 		return errors.Errorf(
 			"invalid spec version format: %s, it should be like 'v0.14'", specVersion)
@@ -82,7 +93,18 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 		return errors.Wrap(err, "failed to parse list of supported spec versions")
 	}
 
-	return runTestsConcurrently(testCases, yourFunc, defaultConcurrency)
+	if maxConcurrency == noConcurrency {
+		for _, testCase := range testCases {
+			err = runSingleTest(testCase, yourFunc)
+			if err != nil {
+				return errors.Wrap(err, "test failed")
+			}
+		}
+
+		return nil
+	}
+
+	return runTestsConcurrently(testCases, yourFunc, maxConcurrency)
 }
 
 // ListVersion returns a list of all available versions of the specification.

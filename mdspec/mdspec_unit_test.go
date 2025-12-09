@@ -145,7 +145,7 @@ func TestListVersion_non_existing_dir(t *testing.T) {
 //  SpecCheck()
 // ----------------------------------------------------------------------------
 
-func TestSpecCheck_goledn(t *testing.T) {
+func TestSpecCheck_golden(t *testing.T) {
 	t.Parallel()
 
 	// Preparation for the dummy function
@@ -172,7 +172,7 @@ func TestSpecCheck_goledn(t *testing.T) {
 		listPairs[key] = t.HTML
 	}
 
-	// Dummy cheet function that returns the exact same HTML as the test case
+	// Dummy cheat function that returns the exact same HTML as the test case
 	// has.
 	myDummyParser := func(md string) (string, error) {
 		key := convAsKey(md)
@@ -537,7 +537,7 @@ func convAsKey(s string) string {
 
 // prepareTestCasesMap loads test cases and creates a map for lookup.
 //
-//nolint:unparam // it always receives "spec_V0.13.json" for now
+//nolint:unparam // it always receives "spec_v0.13.json" for now
 func prepareTestCasesMap(tb testing.TB, specFile string) ([]TestCase, map[string]string) {
 	tb.Helper()
 

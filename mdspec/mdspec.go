@@ -31,8 +31,8 @@ var (
 
 const (
 	// defaultConcurrency specifies the default number of concurrent goroutines
-	// for test execution. A value of 0 uses runtime.GOMAXPROCS(0), which in Go 1.25+
-	// is automatically adjusted based on cgroup CPU quotas in container environments.
+	// for test execution. A value of 0 uses runtime.GOMAXPROCS(0), whose behavior may
+	// depend on the Go version and environment. See Go release notes for details.
 	defaultConcurrency = 0
 )
 
@@ -66,7 +66,7 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 	return SpecCheckWithConcurrency(specVersion, yourFunc, defaultConcurrency)
 }
 
-// SpecCheckWithConcurrency is same as SpecCheck but allows specifying the maximum
+// SpecCheckWithConcurrency is the same as SpecCheck but allows specifying the maximum
 // number of concurrent goroutines for spec test execution.
 //
 //   - If "maxConcurrency = -1", the tests will not run concurrently (runs sequentially).
@@ -169,7 +169,7 @@ func getNamesFile(dir string) ([]string, error) {
 	return out, nil
 }
 
-// isValidFormatVer returns true if the given version input is a valid formtat.
+// isValidFormatVer returns true if the given version input is a valid format.
 func isValidFormatVer(verInput string) bool {
 	if verInput == "latest" {
 		return true
@@ -232,12 +232,7 @@ func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, e
 
 	for _, testCase := range testCases {
 		errGroup.Go(func() error {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-				return runSingleTest(testCase, yourFunc)
-			}
+			return runSingleTest(testCase, yourFunc)
 		})
 	}
 

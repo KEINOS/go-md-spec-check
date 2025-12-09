@@ -371,15 +371,15 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 // ----------------------------------------------------------------------------
 
 // prepareTestCasesMap loads test cases and creates a map for lookup.
-func prepareTestCasesMap(t *testing.T, specFile string) ([]TestCase, map[string]string) {
-	t.Helper()
+func prepareTestCasesMap(tb testing.TB, specFile string) ([]TestCase, map[string]string) {
+	tb.Helper()
 
 	jsonSpec, err := loadFile(specFile)
-	require.NoError(t, err, "failed to load spec file")
+	require.NoError(tb, err, "failed to load spec file")
 
 	var testCases []TestCase
 
-	require.NoError(t, jsonUnmarshal(jsonSpec, &testCases),
+	require.NoError(tb, jsonUnmarshal(jsonSpec, &testCases),
 		"failed to unmarshal test cases",
 	)
 
@@ -397,9 +397,9 @@ func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 	testCases, expectedResults := prepareTestCasesMap(t, "spec_v0.13.json")
 
 	var (
-		executionCount  atomic.Int32
-		maxConcurrent   atomic.Int32
-		currentRunning  atomic.Int32
+		executionCount atomic.Int32
+		maxConcurrent  atomic.Int32
+		currentRunning atomic.Int32
 	)
 
 	// Function that tracks execution and should run sequentially

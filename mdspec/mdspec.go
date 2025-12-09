@@ -6,13 +6,16 @@ list all available versions of the specification.
 package mdspec
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"runtime"
 
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
+	"golang.org/x/sync/errgroup"
 )
 
 // Embed JSON files under _spec into the binary.
@@ -26,11 +29,32 @@ var (
 	prefixFileSpec   = "spec_"
 )
 
+const (
+	// defaultConcurrency specifies the default number of concurrent goroutines
+	// for test execution. A value of 0 uses runtime.GOMAXPROCS(0), which in Go 1.25+
+	// is automatically adjusted based on cgroup CPU quotas in container environments.
+	defaultConcurrency = 0
+)
+
 // Variables to be mocked/monkey-patched during testing.
 var (
 	// jsonUnmarshal is a copy of json.Unmarshal to ease testing.
 	jsonUnmarshal = json.Unmarshal
 )
+
+// TestCase represents a single test case from the CommonMark specification.
+type TestCase struct {
+	Markdown   string `json:"markdown"`
+	HTML       string `json:"html"`
+	Section    string `json:"section"`
+	StartLine  int    `json:"start_line"`
+	EndLine    int    `json:"end_line"`
+	ExampleNum int    `json:"example"`
+}
+
+// ----------------------------------------------------------------------------
+//  Public functions
+// ----------------------------------------------------------------------------
 
 // SpecCheck checks if `yourFunc“ complies with the specified CommonMark version
 // specification using official test cases.
@@ -51,61 +75,14 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 		return errors.Wrap(err, "spec file not found: "+nameFileSpec)
 	}
 
-	// Temporary struct to unmarshal the list of supported spec versions
-	listTests := []struct {
-		Markdown   string `json:"markdown"`
-		HTML       string `json:"html"`
-		Section    string `json:"section"`
-		StartLine  int    `json:"start_line"`
-		EndLine    int    `json:"end_line"`
-		ExampleNum int    `json:"example"`
-	}{}
+	var testCases []TestCase
 
-	err = jsonUnmarshal(jsonSpec, &listTests)
+	err = jsonUnmarshal(jsonSpec, &testCases)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse list of supported spec versions")
 	}
 
-	for _, test := range listTests {
-		nameTest := fmt.Sprintf("%d_%s", test.ExampleNum, test.Section)
-		expect := test.HTML
-
-		actual, err := yourFunc(test.Markdown)
-		if err != nil {
-			msgErr := fmt.Sprintf(
-				"error %s: the given function failed to parse markdown.\n"+
-					"given markdown: %#v\nexpect HTML: %#v\nactual HTML: %#v\n",
-				nameTest, test.Markdown, expect, actual,
-			)
-
-			return errors.Wrap(err, msgErr)
-		}
-
-		if expect != actual {
-			msgErr := fmt.Sprintf(
-				"error %s: the given function did not return the expected HTML result.\n"+
-					"given markdown: %#v\nexpect HTML: %#v\nactual HTML: %#v",
-				nameTest, test.Markdown, expect, actual,
-			)
-
-			return errors.New(msgErr)
-		}
-	}
-
-	return nil
-}
-
-// isValidFormatVer returns true if the given version input is a valid formtat.
-func isValidFormatVer(verInput string) bool {
-	if verInput == "latest" {
-		return true
-	}
-
-	// re := regexp.MustCompile("^v[0-9]+.[0-9]+$")
-
-	// return re.MatchString(verInput)
-
-	return semver.IsValid(verInput)
+	return runTestsConcurrently(testCases, yourFunc, defaultConcurrency)
 }
 
 // ListVersion returns a list of all available versions of the specification.
@@ -137,19 +114,9 @@ func ListVersion() ([]string, error) {
 	return result, nil
 }
 
-// loadFile returns the contents of the file with the given name from the embedded
-// filesystem.
-func loadFile(nameFile string) ([]byte, error) {
-	// Load the list of supported spec versions
-	pathFile := filepath.ToSlash(filepath.Join(nameDirSpecs, nameFile))
-
-	jsonData, err := specFiles.ReadFile(pathFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to read file")
-	}
-
-	return jsonData, nil
-}
+// ----------------------------------------------------------------------------
+//  Private functions
+// ----------------------------------------------------------------------------
 
 // getNamesFile returns a list of all available file names in the embedded
 // filesystem. Note that this function does not recurse into subdirectories.
@@ -174,4 +141,79 @@ func getNamesFile(dir string) ([]string, error) {
 	}
 
 	return out, nil
+}
+
+// isValidFormatVer returns true if the given version input is a valid formtat.
+func isValidFormatVer(verInput string) bool {
+	if verInput == "latest" {
+		return true
+	}
+
+	return semver.IsValid(verInput)
+}
+
+// loadFile returns the contents of the file with the given name from the embedded
+// filesystem.
+func loadFile(nameFile string) ([]byte, error) {
+	// Load the list of supported spec versions
+	pathFile := filepath.ToSlash(filepath.Join(nameDirSpecs, nameFile))
+
+	jsonData, err := specFiles.ReadFile(pathFile)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read file")
+	}
+
+	return jsonData, nil
+}
+
+// runSingleTest executes a single test case using the given function and
+// returns an error if the test fails.
+func runSingleTest(testCase TestCase, yourFunc func(string) (string, error)) error {
+	nameTest := fmt.Sprintf("%d_%s", testCase.ExampleNum, testCase.Section)
+	expect := testCase.HTML
+
+	actual, err := yourFunc(testCase.Markdown)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf(
+			"error %s: the given function failed to parse markdown.\n"+
+				"given markdown: %#v\nexpect HTML: %#v\nactual HTML: %#v",
+			nameTest, testCase.Markdown, expect, actual,
+		))
+	}
+
+	if expect != actual {
+		return errors.Errorf(
+			"error %s: the given function did not return the expected HTML result.\n"+
+				"given markdown: %#v\nexpect HTML: %#v\nactual HTML: %#v",
+			nameTest, testCase.Markdown, expect, actual,
+		)
+	}
+
+	return nil
+}
+
+// runTestsConcurrently runs all test cases concurrently with the specified
+// concurrency limit. If maxConcurrency is 0, it defaults to runtime.GOMAXPROCS(0),
+// which in Go 1.25+ is automatically optimized for container environments.
+func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, error), maxConcurrency int) error {
+	errGroup, ctx := errgroup.WithContext(context.Background())
+
+	if maxConcurrency <= 0 {
+		maxConcurrency = runtime.GOMAXPROCS(0)
+	}
+
+	errGroup.SetLimit(maxConcurrency)
+
+	for _, testCase := range testCases {
+		errGroup.Go(func() error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+				return runSingleTest(testCase, yourFunc)
+			}
+		})
+	}
+
+	return errors.Wrap(errGroup.Wait(), "failed to run tests concurrently")
 }

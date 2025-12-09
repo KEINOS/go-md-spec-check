@@ -4,8 +4,11 @@ import (
 	//nolint:gosec // use of md5 is intentional. not for cryptographic purposes
 	"crypto/md5"
 	"encoding/hex"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -259,4 +262,106 @@ func TestSpecCheck_spec_version_error(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to parse list of supported spec versions")
 		assert.Contains(t, err.Error(), "forced error")
 	})
+}
+
+// ----------------------------------------------------------------------------
+//  Concurrency verification tests
+// ----------------------------------------------------------------------------
+
+func TestSpecCheck_runs_concurrently(t *testing.T) {
+	t.Parallel()
+
+	var (
+		concurrentCount atomic.Int32
+		maxConcurrent   atomic.Int32
+	)
+
+	// Create a function that tracks concurrent execution
+	slowFunc := func(_ string) (string, error) {
+		// Increment concurrent counter
+		current := concurrentCount.Add(1)
+
+		// Update max if this is higher
+		for {
+			maxVal := maxConcurrent.Load()
+			if current <= maxVal || maxConcurrent.CompareAndSwap(maxVal, current) {
+				break
+			}
+		}
+
+		// Simulate some work to ensure goroutines overlap
+		time.Sleep(10 * time.Millisecond)
+
+		// Decrement on exit
+		concurrentCount.Add(-1)
+
+		// Return valid HTML for any input
+		return "<p>test</p>\n", nil
+	}
+
+	// Run SpecCheck with a small spec version that has enough test cases
+	err := SpecCheck("v0.13", slowFunc)
+
+	// We expect an error because our function doesn't return correct HTML
+	require.Error(t, err, "should fail due to incorrect HTML output")
+
+	// Verify that at least 2 goroutines ran concurrently
+	maxReached := maxConcurrent.Load()
+	minExpected := int32(2)
+
+	if runtime.GOMAXPROCS(0) > 1 {
+		assert.GreaterOrEqual(t, maxReached, minExpected,
+			"expected at least %d concurrent goroutines, got %d (GOMAXPROCS=%d)",
+			minExpected, maxReached, runtime.GOMAXPROCS(0))
+	} else {
+		t.Logf("Skipping concurrency check: GOMAXPROCS=1")
+	}
+
+	t.Logf("Max concurrent goroutines observed: %d (GOMAXPROCS=%d)",
+		maxReached, runtime.GOMAXPROCS(0))
+}
+
+func TestSpecCheck_concurrency_correctness(t *testing.T) {
+	t.Parallel()
+
+	// Prepare test data
+	jsonSpec, err := loadFile("spec_v0.30.json")
+	require.NoError(t, err, "failed to load spec file")
+
+	var testCases []TestCase
+
+	require.NoError(t, jsonUnmarshal(jsonSpec, &testCases),
+		"failed to unmarshal test cases",
+	)
+
+	// Create a map for fast lookup
+	expectedResults := make(map[string]string, len(testCases))
+	for _, tc := range testCases {
+		expectedResults[tc.Markdown] = tc.HTML
+	}
+
+	// Track all test cases that were executed
+	var executionCount atomic.Int32
+
+	// Function that returns correct results and tracks execution
+	correctFunc := func(markdown string) (string, error) {
+		executionCount.Add(1)
+
+		result, ok := expectedResults[markdown]
+		if !ok {
+			return "", errors.New("unexpected markdown input")
+		}
+
+		return result, nil
+	}
+
+	// Run SpecCheck - should succeed with correct function
+	err = SpecCheck("v0.30", correctFunc)
+	require.NoError(t, err, "SpecCheck should succeed with correct function")
+
+	// Verify all test cases were executed
+	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+		"all test cases should be executed exactly once")
+
+	t.Logf("Successfully executed %d test cases concurrently", executionCount.Load())
 }

@@ -56,7 +56,7 @@ type TestCase struct {
 //  Public functions
 // ----------------------------------------------------------------------------
 
-// SpecCheck checks if `yourFunc“ complies with the specified CommonMark version
+// SpecCheck checks if "yourFunc" complies with the specified CommonMark version
 // specification using official test cases.
 //
 // Usage:
@@ -218,9 +218,8 @@ func runSingleTest(testCase TestCase, yourFunc func(string) (string, error)) err
 	return nil
 }
 
-// runTestsConcurrently runs all test cases concurrently with the specified
-// concurrency limit. If maxConcurrency is 0, it defaults to runtime.GOMAXPROCS(0),
-// which in Go 1.25+ is automatically optimized for container environments.
+// runTestsConcurrently runs all test cases concurrently using the given function
+// and returns an error if any test fails.
 func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, error), maxConcurrency int) error {
 	errGroup, _ := errgroup.WithContext(context.Background())
 

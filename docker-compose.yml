@@ -1,5 +1,5 @@
 # =============================================================================
-# Docker Compose file for testing on Go versions 1.22 to the latest.
+# Docker Compose file for testing on Go versions 1.25 to the latest.
 # =============================================================================
 # Usage:
 #     $ # Build all the containers

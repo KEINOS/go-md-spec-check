@@ -1,6 +1,7 @@
 package mdspec
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
 	limits := []int{2, 4, 8, 16}
 
 	for _, limit := range limits {
-		b.Run(b.Name()+"_"+string(rune(limit+'0')), func(b *testing.B) {
+		b.Run(fmt.Sprintf("%s_%d", b.Name(), limit), func(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {

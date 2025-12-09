@@ -355,7 +355,7 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 	require.NoError(t, err, "SpecCheck should succeed with correct function")
 
 	// Verify all test cases were executed
-	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+	assert.Equal(t, len(testCases), int(executionCount.Load()),
 		"all test cases should be executed exactly once")
 
 	t.Logf("Successfully executed %d test cases concurrently", executionCount.Load())
@@ -407,7 +407,7 @@ func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 	require.NoError(t, err, "sequential execution should succeed")
 
 	// Verify all tests were executed
-	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+	assert.Equal(t, len(testCases), int(executionCount.Load()),
 		"all test cases should be executed")
 
 	// Verify sequential execution (max concurrent should be 1)
@@ -460,7 +460,7 @@ func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 	require.NoError(t, err, "custom concurrency execution should succeed")
 
 	// Verify all tests were executed
-	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+	assert.Equal(t, len(testCases), int(executionCount.Load()),
 		"all test cases should be executed")
 
 	// Verify concurrency was limited to custom value
@@ -499,7 +499,7 @@ func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
 	require.NoError(t, err, "auto-optimized execution should succeed")
 
 	// Verify all tests were executed
-	assert.Equal(t, int32(len(testCases)), executionCount.Load(),
+	assert.Equal(t, len(testCases), int(executionCount.Load()),
 		"all test cases should be executed")
 
 	t.Logf("Auto-optimized execution: %d test cases (GOMAXPROCS=%d)",

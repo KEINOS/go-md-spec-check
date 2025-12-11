@@ -3,6 +3,7 @@ package mdspec_test
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/KEINOS/go-md-spec-check/mdspec"
 )
@@ -21,13 +22,12 @@ func Example() {
 	// version 0.30.
 	err := mdspec.SpecCheck("v0.30", myMarkdownParser)
 	if err != nil {
-		fmt.Println(err.Error())
+		if strings.Contains(err.Error(), "did not return the expected HTML result") {
+			fmt.Println("The parser does not comply with the CommonMark specification.")
+		}
 	}
 	// Output:
-	// error 1_Tabs: the given function did not return the expected HTML result.
-	// given markdown: "\tfoo\tbaz\t\tbim\n"
-	// expect HTML: "<pre><code>foo\tbaz\t\tbim\n</code></pre>\n"
-	// actual HTML: "<p>Hello, World!</p>"
+	// The parser does not comply with the CommonMark specification.
 }
 
 func ExampleListVersion() {

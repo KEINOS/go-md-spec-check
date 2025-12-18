@@ -221,6 +221,7 @@ func runSingleTest(testCase TestCase, yourFunc func(string) (string, error)) err
 // runTestsConcurrently runs all test cases concurrently using the given function
 // and returns an error if any test fails.
 func runTestsConcurrently(testCases []TestCase, yourFunc func(string) (string, error), maxConcurrency int) error {
+	// Context is auto-canceled on first error, but we run all tests to completion anyway.
 	errGroup, _ := errgroup.WithContext(context.Background())
 
 	if maxConcurrency == 0 {

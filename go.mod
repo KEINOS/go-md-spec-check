@@ -2,8 +2,6 @@ module github.com/KEINOS/go-md-spec-check
 
 go 1.25.0
 
-toolchain go1.24.1
-
 require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.11.1

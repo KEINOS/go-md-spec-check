@@ -12,7 +12,7 @@ import (
 // BenchmarkSpecCheckWithConcurrency_Sequential benchmarks sequential execution
 // with maxConcurrency=-1.
 func BenchmarkSpecCheckWithConcurrency(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(b, oldestSpecFile)
 
 	// Create a function that returns correct results
 	//nolint:unparam // error is always nil in this benchmark
@@ -48,7 +48,7 @@ func BenchmarkSpecCheckWithConcurrency(b *testing.B) {
 // BenchmarkSpecCheckWithConcurrency_CustomLimit benchmarks concurrent execution
 // with various custom concurrency limits.
 func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(b, oldestSpecFile)
 
 	// Create a function that returns correct results
 	//nolint:unparam // error is always nil in this benchmark
@@ -80,7 +80,7 @@ func BenchmarkSpecCheckWithConcurrency_CustomLimit(b *testing.B) {
 // BenchmarkSpecCheck_DefaultBehavior benchmarks the default SpecCheck function
 // which uses auto-optimized concurrency.
 func BenchmarkSpecCheck_DefaultBehavior(b *testing.B) {
-	testCases, expectedResults := prepareTestCasesMap(b, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(b, oldestSpecFile)
 
 	// Create a function that returns correct results
 	correctFunc := func(markdown string) (string, error) {

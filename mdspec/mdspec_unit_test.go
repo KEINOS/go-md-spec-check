@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const latestSpecFile = "spec_v0.13.json"
+const oldestSpecFile = "spec_v0.13.json"
 
 // ----------------------------------------------------------------------------
 //  getNamesFile()
@@ -71,6 +71,32 @@ func Test_isValidFormatVer(t *testing.T) {
 // ----------------------------------------------------------------------------
 //  ListVersion()
 // ----------------------------------------------------------------------------
+
+//nolint:paralleltest // do not parallelize due to dependency on other tests
+func TestListVersion_cache(t *testing.T) {
+	oldVersionList := versionList
+
+	defer func() {
+		versionList = oldVersionList
+	}()
+
+	// Clear cache
+	versionList = nil
+
+	listFirst, err := ListVersion()
+	require.NoError(t, err)
+
+	// Modify the cache to test if the second call uses it
+	versionList = []string{"cached_version"}
+
+	listSecond, err := ListVersion()
+	require.NoError(t, err)
+
+	require.Equal(t, []string{"cached_version"}, listSecond,
+		"second call should return cached version list")
+	require.NotEqual(t, listFirst, listSecond,
+		"first and second call results should differ due to caching")
+}
 
 func TestListVersion_contains_all(t *testing.T) {
 	t.Parallel()
@@ -148,45 +174,48 @@ func TestListVersion_non_existing_dir(t *testing.T) {
 func TestSpecCheck_golden(t *testing.T) {
 	t.Parallel()
 
-	// Preparation for the dummy function
-	jsonSpec, err := loadFile("spec_v0.30.json")
-	require.NoError(t, err, "failed to load spec file")
+	t.Run("latest version", func(t *testing.T) {
+		t.Parallel()
 
-	listTests := []struct {
-		Markdown   string `json:"markdown"`
-		HTML       string `json:"html"`
-		Section    string `json:"section"`
-		StartLine  int    `json:"start_line"`
-		EndLine    int    `json:"end_line"`
-		ExampleNum int    `json:"example"`
-	}{}
+		latestSpecVersion, err := LatestVersion()
+		require.NoError(t, err, "failed to get latest spec version")
 
-	require.NoError(t, jsonUnmarshal(jsonSpec, &listTests),
-		"failed to unmarshal list of supported spec versions",
-	)
+		myDummyParser := getGoldenParser(t, latestSpecVersion)
 
-	listPairs := map[string]string{}
+		require.NoError(t, SpecCheck("latest", myDummyParser),
+			"it should not return an error")
+	})
 
-	for _, t := range listTests {
-		key := convAsKey(t.Markdown)
-		listPairs[key] = t.HTML
+	t.Run("specific version", func(t *testing.T) {
+		t.Parallel()
+
+		myDummyParser := getGoldenParser(t, "v0.30")
+
+		require.NoError(t, SpecCheck("v0.30", myDummyParser),
+			"it should not return an error")
+	})
+}
+
+//nolint:paralleltest // do not parallelize due to dependency on other tests
+func TestSpecCheck_fail_to_get_spec_file(t *testing.T) {
+	// Backup and defer restore the file name
+	oldNameFileSpecList := nameFileSpecList
+
+	defer func() {
+		nameFileSpecList = oldNameFileSpecList
+	}()
+
+	// Mock/monkey patch the file name temporarily
+	nameFileSpecList = "unknown"
+
+	myDummyFunc := func(string) (string, error) {
+		return "", nil
 	}
 
-	// Dummy cheat function that returns the exact same HTML as the test case
-	// has.
-	myDummyParser := func(md string) (string, error) {
-		key := convAsKey(md)
+	err := SpecCheck("latest", myDummyFunc)
 
-		result, ok := listPairs[key]
-		if !ok {
-			return "", errors.New("not found")
-		}
-
-		return result, nil
-	}
-
-	require.NoError(t, SpecCheck("v0.30", myDummyParser),
-		"it should not return an error")
+	require.Error(t, err, "non existing spec file should return an error")
+	assert.Contains(t, err.Error(), "failed to get latest spec version")
 }
 
 func TestSpecCheck_bad_html(t *testing.T) {
@@ -368,7 +397,7 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(t, oldestSpecFile)
 
 	var (
 		executionCount atomic.Int32
@@ -421,7 +450,7 @@ func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(t, oldestSpecFile)
 
 	var (
 		executionCount atomic.Int32
@@ -479,7 +508,7 @@ func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
 	t.Parallel()
 
-	testCases, expectedResults := prepareTestCasesMap(t, latestSpecFile)
+	testCases, expectedResults := prepareTestCasesMap(t, oldestSpecFile)
 
 	var executionCount atomic.Int32
 
@@ -533,6 +562,51 @@ func convAsKey(s string) string {
 	h := md5.Sum([]byte(s))
 
 	return hex.EncodeToString(h[:])
+}
+
+// Returns a cheat parser function that returns the exact same HTML as the test
+// case has.
+func getGoldenParser(t *testing.T, reqVer string) func(string) (string, error) {
+	t.Helper()
+
+	requestedFile := "spec_" + reqVer + ".json"
+
+	// Preparation for the dummy function
+	jsonSpec, err := loadFile(requestedFile)
+	require.NoError(t, err, "failed to load spec file for cheating")
+
+	listTests := []struct {
+		Markdown   string `json:"markdown"`
+		HTML       string `json:"html"`
+		Section    string `json:"section"`
+		StartLine  int    `json:"start_line"`
+		EndLine    int    `json:"end_line"`
+		ExampleNum int    `json:"example"`
+	}{}
+
+	require.NoError(t, jsonUnmarshal(jsonSpec, &listTests),
+		"failed to unmarshal list of supported spec versions",
+	)
+
+	listPairs := map[string]string{}
+
+	for _, t := range listTests {
+		key := convAsKey(t.Markdown)
+		listPairs[key] = t.HTML
+	}
+
+	// Dummy cheat function that returns the exact same HTML as the test case
+	// has.
+	return func(md string) (string, error) {
+		key := convAsKey(md)
+
+		result, ok := listPairs[key]
+		if !ok {
+			return "", errors.New("not found")
+		}
+
+		return result, nil
+	}
 }
 
 // prepareTestCasesMap loads test cases and creates a map for lookup.

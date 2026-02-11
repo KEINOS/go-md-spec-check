@@ -26,8 +26,29 @@ func Example() {
 			fmt.Println("The parser does not comply with the CommonMark specification.")
 		}
 	}
+
+	// Check if the `myMarkdownParser()` complies with the latest CommonMark specification
+	err = mdspec.SpecCheck("latest", myMarkdownParser)
+	if err != nil {
+		if strings.Contains(err.Error(), "did not return the expected HTML result") {
+			fmt.Println("The parser does not comply with the CommonMark specification.")
+		}
+	}
+
 	// Output:
 	// The parser does not comply with the CommonMark specification.
+	// The parser does not comply with the CommonMark specification.
+}
+
+func ExampleLatestVersion() {
+	latest, err := mdspec.LatestVersion()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("The latest CommonMark specification version is:", latest)
+	// Output:
+	// The latest CommonMark specification version is: v0.31.2
 }
 
 func ExampleListVersion() {
@@ -40,23 +61,23 @@ func ExampleListVersion() {
 		fmt.Println(v)
 	}
 	// Output:
-	// v0.31.2
-	// v0.30
-	// v0.29
-	// v0.28
-	// v0.27
-	// v0.26
-	// v0.25
-	// v0.24
-	// v0.23
-	// v0.22
-	// v0.21
-	// v0.20
-	// v0.19
-	// v0.18
-	// v0.17
-	// v0.16
-	// v0.15
-	// v0.14
 	// v0.13
+	// v0.14
+	// v0.15
+	// v0.16
+	// v0.17
+	// v0.18
+	// v0.19
+	// v0.20
+	// v0.21
+	// v0.22
+	// v0.23
+	// v0.24
+	// v0.25
+	// v0.26
+	// v0.27
+	// v0.28
+	// v0.29
+	// v0.30
+	// v0.31.2
 }

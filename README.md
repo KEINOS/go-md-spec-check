@@ -36,7 +36,7 @@ func Example() {
 
     // Check if the `myMarkdownParser()` complies with the CommonMark specification
     // version 0.30.
-    // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2"
+    // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2" and "latest"
     err := mdspec.SpecCheck("v0.30", myMarkdownParser)
 
     if err != nil {

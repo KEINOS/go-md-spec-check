@@ -6,9 +6,5 @@ These `spec_*.json` files will be embedded in the binary and used to test the sp
 
 ## How to update
 
-To update:
-
-1. See the [CommonMark spec](https://spec.commonmark.org/) for the latest test cases.
-2. Edit the `spec_list.json` and run `download_specs.go` to download the latest test cases.
-    - Note that the `spec_list.json` is ordered, from the most recent to the oldest version.
-3. Update the test of `ExampleListVersion()` at "examples_test.go" to reflect the changes.
+1. Move to `_updater` directory in the parent directory.
+2. Run the `download_specs.go` program to download the latest test cases.

@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -95,7 +96,7 @@ func main() {
 // The hash algorithm used is xxHash3.
 func IsUpToDate(expectHash string, body []byte) bool {
 	// Calculate the hash of the latest spec page.
-	latestHash := fmt.Sprintf("%x", xxh3.Hash(body))
+	latestHash := strconv.FormatUint(xxh3.Hash(body), 16)
 
 	fmt.Println("-----------------------------------------------------------------------------------")
 	fmt.Println("* Spec page URL:", urlSpecList)
@@ -113,7 +114,8 @@ func DownloadFile(urlTarget string, pathOut string) error {
 		return errors.Wrap(err, "failed to download file")
 	}
 
-	if err := os.WriteFile(pathOut, body, FileMode600); err != nil {
+	err = os.WriteFile(pathOut, body, FileMode600)
+	if err != nil {
 		return errors.Wrap(err, "failed to create file")
 	}
 
@@ -137,6 +139,8 @@ func ExitOnError(err error) {
 func extractSpecFileURLfromHTML(inputHTML []byte) ([]SpecInfo, error) {
 	const expDate = `\((\d{4}-\d{2}-\d{2})\)` // RFC3339 date without time
 
+	const minDateMatch = 2
+
 	datePattern := regexp.MustCompile(expDate)
 
 	baseURL, err := url.Parse(urlSpecList)
@@ -154,31 +158,38 @@ func extractSpecFileURLfromHTML(inputHTML []byte) ([]SpecInfo, error) {
 
 	var specInfos []SpecInfo
 
-	doc.Find("li").Each(func(i int, s *goquery.Selection) {
-		version := strings.TrimSpace(s.Find("a").First().Text())
+	doc.Find("li").Each(func(_ int, sel *goquery.Selection) {
+		// Extract version
+		version := strings.TrimSpace(sel.Find("a").First().Text())
 		if version == "" || !semver.IsValid("v"+version) {
 			return
 		}
 
 		if semver.Compare("v"+version, "v"+minVerSpec) < 0 {
+			return // ignore old version without spec.json
+		}
+
+		// Extract enactment date
+		dateMatch := datePattern.FindStringSubmatch(sel.Text())
+		if len(dateMatch) < minDateMatch {
 			return
 		}
 
-		dateMatch := datePattern.FindStringSubmatch(s.Text())
-		if len(dateMatch) < 2 {
-			return
-		}
-
+		// Extract spec.json URL
 		var specHref string
-		s.Find("a").EachWithBreak(func(j int, a *goquery.Selection) bool {
+
+		sel.Find("a").EachWithBreak(func(_ int, a *goquery.Selection) bool {
 			href, ok := a.Attr("href")
 			if !ok {
 				return true
 			}
+
 			if strings.HasSuffix(href, "/spec.json") {
 				specHref = href
+
 				return false
 			}
+
 			return true
 		})
 

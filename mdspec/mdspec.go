@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"slices"
 
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
@@ -27,6 +28,7 @@ var (
 	nameDirSpecs     = "_specs"
 	nameFileSpecList = "spec_list.json"
 	prefixFileSpec   = "spec_"
+	versionList      []string
 )
 
 const (
@@ -83,6 +85,15 @@ func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string,
 			"invalid spec version format: %s, it should be like 'v0.14'", specVersion)
 	}
 
+	if specVersion == "latest" {
+		latestVer, err := LatestVersion()
+		if err != nil {
+			return errors.Wrap(err, "failed to get latest spec version")
+		}
+
+		specVersion = latestVer
+	}
+
 	nameFileSpec := fmt.Sprintf("%s%s.json", prefixFileSpec, specVersion)
 
 	jsonSpec, err := loadFile(nameFileSpec)
@@ -111,8 +122,23 @@ func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string,
 	return runTestsConcurrently(testCases, yourFunc, maxConcurrency)
 }
 
+// LatestVersion returns the latest available version of the specification.
+func LatestVersion() (string, error) {
+	versions, err := ListVersion()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get latest version")
+	}
+
+	return versions[len(versions)-1], nil
+}
+
 // ListVersion returns a list of all available versions of the specification.
 func ListVersion() ([]string, error) {
+	// Cache the version list
+	if versionList != nil {
+		return versionList, nil
+	}
+
 	jsonList, err := loadFile(nameFileSpecList)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read list of supported spec versions")
@@ -131,13 +157,15 @@ func ListVersion() ([]string, error) {
 	}
 
 	// Create list of supported spec versions
-	result := make([]string, len(objList))
+	versionList = make([]string, len(objList))
 
 	for i, obj := range objList {
-		result[i] = obj.Version
+		versionList[i] = obj.Version
 	}
 
-	return result, nil
+	slices.Sort(versionList)
+
+	return versionList, nil
 }
 
 // ----------------------------------------------------------------------------

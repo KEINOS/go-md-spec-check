@@ -49,7 +49,7 @@ func Test_isValidFormatVer(t *testing.T) {
 		want  bool
 	}{
 		// Valid cases
-		{"latest", true},
+		{LatestSpecVer, true},
 		{"v0.14", true},
 		{"v0.31.2", true},
 		{"v1.14.0", true},

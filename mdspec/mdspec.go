@@ -24,24 +24,27 @@ import (
 //go:embed _specs/*.json
 var specFiles embed.FS
 
-var (
-	nameDirSpecs     = "_specs"
-	nameFileSpecList = "spec_list.json"
-	prefixFileSpec   = "spec_"
-	versionList      []string
-)
-
 const (
+	nameDirSpecs = "_specs"
+	prefixFileSpec   = "spec_"
+	// LatestSpecVer is the string literal for the latest spec version.
+	LatestSpecVer = "latest"
 	// defaultConcurrency specifies the default number of concurrent goroutines
 	// for test execution. A value of 0 uses runtime.GOMAXPROCS(0), whose behavior may
 	// depend on the Go version and environment. See Go release notes for details.
 	defaultConcurrency = 0
 )
 
+// nameFileSpecList is the file name of the spec list.
+var nameFileSpecList = "spec_list.json" //nolint:gochecknoglobals
+
+// versionList caches the list of available spec versions.
+var versionList []string //nolint:gochecknoglobals
+
 // Variables to be mocked/monkey-patched during testing.
 var (
 	// jsonUnmarshal is a copy of json.Unmarshal to ease testing.
-	jsonUnmarshal = json.Unmarshal
+	jsonUnmarshal = json.Unmarshal //nolint:gochecknoglobals
 )
 
 // TestCase represents a single test case from the CommonMark specification.
@@ -85,7 +88,7 @@ func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string,
 			"invalid spec version format: %s, it should be like 'v0.14'", specVersion)
 	}
 
-	if specVersion == "latest" {
+	if specVersion == LatestSpecVer {
 		latestVer, err := LatestVersion()
 		if err != nil {
 			return errors.Wrap(err, "failed to get latest spec version")

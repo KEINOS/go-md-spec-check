@@ -1,60 +1,25 @@
-# This file contains configuration options for GolangCI-Lint.
-#
-# - It requires latestgolangci-lint.
-# - Available linters see: https://golangci-lint.run/usage/linters/
-# - Sample of config see: https://golangci-lint.run/usage/configuration/#config-file
-# Options for analysis running
-
 version: "2"
 
 run:
-  # Include test files.
   tests: true
-
-  # List of build tags, all linters use it. Default is empty list.
-  build-tags:
-    - golangci
-
-  # Allow multiple parallel golangci-lint instances running.
   allow-parallel-runners: true
 
-# Enabled all linters. Conf settings may follow.
 linters:
-  # Which dirs to skip. Issues from them won't be reported.
-  exclusions:
-    paths:
-      - .github
   default: all
-
   disable:
-  # Remove deactivated linters
-  # - deadcode
-  # - execinquery
-  # - exhaustivestruct
-  # - golint
-  # - gomnd
-  # - ifshort
-  # - interfacer
-  # - maligned
-  # - nosnakecase
-  # - scopelint
-  # - structcheck
-  # - varcheck
-  # - exportloopref
-  # - tenv
-  #
-  # Disable deprecated/abandoned linters
-  # ------------------------------------------------------------
-  # Disabled due to wsl_v5 replacement
-  - wsl
-  # Disabled because of testing private functions
-  - testpackage
-
-  # Disable lints à la carte
-  #
-  # Disable camelCase JSON tag due to the original spec is in snake_case
-  - tagliatelle
-  # We allow global variable for testing purposes
-  - gochecknoglobals
-  # Disabled due to the use of external packages
-  - depguard
+    # Deprecated linters
+    - wsl
+    - gomodguard
+    # == Project policy ==
+    - depguard
+    - testpackage
+    # JSON of Go benchmark and tool result commonly use snake_case, so allow.
+    - tagliatelle
+  settings:
+    paralleltest:
+      ignore-missing: false
+    varnamelen:
+      ignore-names:
+        - ok
+        - t
+        - tt

@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"sync"
 
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
@@ -25,8 +26,8 @@ import (
 var specFiles embed.FS
 
 const (
-	nameDirSpecs = "_specs"
-	prefixFileSpec   = "spec_"
+	nameDirSpecs   = "_specs"
+	prefixFileSpec = "spec_"
 	// LatestSpecVer is the string literal for the latest spec version.
 	LatestSpecVer = "latest"
 	// defaultConcurrency specifies the default number of concurrent goroutines
@@ -38,8 +39,12 @@ const (
 // nameFileSpecList is the file name of the spec list.
 var nameFileSpecList = "spec_list.json" //nolint:gochecknoglobals
 
-// versionList caches the list of available spec versions.
+// versionList caches the list of available spec versions. It must only be
+// accessed while holding muVersionList.
 var versionList []string //nolint:gochecknoglobals
+
+// muVersionList guards versionList.
+var muVersionList sync.Mutex //nolint:gochecknoglobals
 
 // Variables to be mocked/monkey-patched during testing.
 var (
@@ -135,11 +140,20 @@ func LatestVersion() (string, error) {
 	return versions[len(versions)-1], nil
 }
 
-// ListVersion returns a list of all available versions of the specification.
+// ListVersion returns a list of all available versions of the specification,
+// sorted in ascending order. The returned slice is a copy, so callers may modify
+// it freely without affecting the internal cache.
+//
+// Note that jsonUnmarshal must not call ListVersion, since muVersionList is held
+// for the whole call and sync.Mutex is not reentrant.
 func ListVersion() ([]string, error) {
-	// Cache the version list
+	muVersionList.Lock()
+	defer muVersionList.Unlock()
+
+	// Return the cached version list, if any. Note that failures are never
+	// cached, so a failed call can be retried.
 	if versionList != nil {
-		return versionList, nil
+		return slices.Clone(versionList), nil
 	}
 
 	jsonList, err := loadFile(nameFileSpecList)
@@ -160,15 +174,17 @@ func ListVersion() ([]string, error) {
 	}
 
 	// Create list of supported spec versions
-	versionList = make([]string, len(objList))
+	list := make([]string, len(objList))
 
 	for i, obj := range objList {
-		versionList[i] = obj.Version
+		list[i] = obj.Version
 	}
 
-	slices.Sort(versionList)
+	slices.Sort(list)
 
-	return versionList, nil
+	versionList = list
+
+	return slices.Clone(versionList), nil
 }
 
 // ----------------------------------------------------------------------------

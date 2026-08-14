@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -74,20 +75,14 @@ func Test_isValidFormatVer(t *testing.T) {
 
 //nolint:paralleltest // do not parallelize due to dependency on other tests
 func TestListVersion_cache(t *testing.T) {
-	oldVersionList := versionList
-
-	defer func() {
-		versionList = oldVersionList
-	}()
-
 	// Clear cache
-	versionList = nil
+	swapVersionList(t, nil)
 
 	listFirst, err := ListVersion()
 	require.NoError(t, err)
 
 	// Modify the cache to test if the second call uses it
-	versionList = []string{"cached_version"}
+	swapVersionList(t, []string{"cached_version"})
 
 	listSecond, err := ListVersion()
 	require.NoError(t, err)
@@ -96,6 +91,68 @@ func TestListVersion_cache(t *testing.T) {
 		"second call should return cached version list")
 	require.NotEqual(t, listFirst, listSecond,
 		"first and second call results should differ due to caching")
+}
+
+//nolint:paralleltest // do not parallelize due to dependency on other tests
+func TestListVersion_concurrent_calls(t *testing.T) {
+	const numGoroutines = 50
+
+	// Clear cache to let all the goroutines below race on the load path
+	swapVersionList(t, nil)
+
+	var waitGroup sync.WaitGroup
+
+	// Join all the goroutines before the cache is restored, so that no straggler
+	// can refill it. Deferred calls run before the cleanup of swapVersionList.
+	defer waitGroup.Wait()
+
+	chStart := make(chan struct{})
+	lists := make([][]string, numGoroutines)
+	errs := make([]error, numGoroutines)
+
+	for idx := range numGoroutines {
+		waitGroup.Go(func() {
+			// Block until released, to maximize the overlap
+			<-chStart
+
+			lists[idx], errs[idx] = ListVersion()
+		})
+	}
+
+	close(chStart)
+	waitGroup.Wait()
+
+	for idx := range numGoroutines {
+		require.NoError(t, errs[idx], "concurrent call should not fail")
+		require.Equal(t, lists[0], lists[idx],
+			"all concurrent calls should return the same list")
+	}
+}
+
+//nolint:paralleltest // do not parallelize due to dependency on other tests
+func TestListVersion_returns_copy(t *testing.T) {
+	// Clear cache, so that the first call below takes the load path
+	swapVersionList(t, nil)
+
+	listLoaded, err := ListVersion()
+	require.NoError(t, err)
+	require.NotEmpty(t, listLoaded)
+
+	// Mutating the freshly loaded list should not affect the internal cache
+	listLoaded[0] = "mutated_version"
+
+	listCached, err := ListVersion()
+	require.NoError(t, err)
+	require.NotEqual(t, "mutated_version", listCached[0],
+		"the freshly loaded list should be a copy of the cache")
+
+	// Mutating the cached list should not affect the internal cache either
+	listCached[0] = "mutated_version"
+
+	listAgain, err := ListVersion()
+	require.NoError(t, err)
+	require.NotEqual(t, "mutated_version", listAgain[0],
+		"the cached list should be a copy of the cache")
 }
 
 func TestListVersion_contains_all(t *testing.T) {
@@ -137,6 +194,9 @@ func TestListVersion_fail_to_unmarshal(t *testing.T) {
 		jsonUnmarshal = oldJSONUnmarshal
 	}()
 
+	// Clear cache, so that the mock below is actually reached
+	swapVersionList(t, nil)
+
 	// Mock/monkey patch to force an error
 	jsonUnmarshal = func([]byte, any) error {
 		return errors.New("forced error")
@@ -147,6 +207,14 @@ func TestListVersion_fail_to_unmarshal(t *testing.T) {
 	require.Error(t, err, "it should fail to unmarshal")
 	require.Nil(t, listExpect, "it should be nil on error")
 	assert.Contains(t, err.Error(), "forced error")
+
+	// A failed call should not be cached, thus it should be retryable
+	jsonUnmarshal = oldJSONUnmarshal
+
+	listRetry, err := ListVersion()
+
+	require.NoError(t, err, "a failed call should be retryable")
+	require.NotEmpty(t, listRetry, "the retried call should return the list")
 }
 
 //nolint:paralleltest // do not parallelize due to dependency on other tests
@@ -157,6 +225,9 @@ func TestListVersion_non_existing_dir(t *testing.T) {
 	defer func() {
 		nameFileSpecList = oldNameFileSpecList
 	}()
+
+	// Clear cache, so that the mock below is actually reached
+	swapVersionList(t, nil)
 
 	// Mock/monkey patch the file name temporarily
 	nameFileSpecList = "unknown"
@@ -204,6 +275,9 @@ func TestSpecCheck_fail_to_get_spec_file(t *testing.T) {
 	defer func() {
 		nameFileSpecList = oldNameFileSpecList
 	}()
+
+	// Clear cache, so that the mock below is actually reached
+	swapVersionList(t, nil)
 
 	// Mock/monkey patch the file name temporarily
 	nameFileSpecList = "unknown"
@@ -607,6 +681,23 @@ func getGoldenParser(t *testing.T, reqVer string) func(string) (string, error) {
 
 		return result, nil
 	}
+}
+
+// swapVersionList replaces the version list cache with the given list and
+// restores the original one once the test ends. Pass nil to clear the cache.
+func swapVersionList(tb testing.TB, list []string) {
+	tb.Helper()
+
+	muVersionList.Lock()
+	oldVersionList := versionList
+	versionList = list
+	muVersionList.Unlock()
+
+	tb.Cleanup(func() {
+		muVersionList.Lock()
+		versionList = oldVersionList
+		muVersionList.Unlock()
+	})
 }
 
 // prepareTestCasesMap loads test cases and creates a map for lookup.

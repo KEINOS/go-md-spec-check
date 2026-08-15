@@ -79,7 +79,8 @@ func SpecCheck(specVersion string, yourFunc func(string) (string, error)) error 
 // SpecCheckWithConcurrency is the same as SpecCheck but allows specifying the maximum
 // number of concurrent goroutines for spec test execution.
 //
-//   - If "maxConcurrency = -1", the tests will not run concurrently (runs sequentially).
+//   - If "maxConcurrency" is negative ("-1" or less), the tests will not run
+//     concurrently (runs sequentially).
 //   - If "maxConcurrency = 0", it will automatically optimize the concurrency.
 //
 // If your function is lightning fast (< 5μs/call), running tests concurrently may not
@@ -116,7 +117,9 @@ func SpecCheckWithConcurrency(specVersion string, yourFunc func(string) (string,
 		return errors.Wrap(err, "failed to parse list of supported spec versions")
 	}
 
-	if maxConcurrency == noConcurrency {
+	// Any negative value disables concurrency. Passing a negative value straight
+	// to errgroup.SetLimit would mean "no limit", which is the opposite intent.
+	if maxConcurrency <= noConcurrency {
 		for _, testCase := range testCases {
 			err = runSingleTest(testCase, yourFunc)
 			if err != nil {
@@ -141,8 +144,8 @@ func LatestVersion() (string, error) {
 }
 
 // ListVersion returns a list of all available versions of the specification,
-// sorted in ascending order. The returned slice is a copy, so callers may modify
-// it freely without affecting the internal cache.
+// sorted in ascending semantic version order. The returned slice is a copy, so
+// callers may modify it freely without affecting the internal cache.
 //
 // Note that jsonUnmarshal must not call ListVersion, since muVersionList is held
 // for the whole call and sync.Mutex is not reentrant.
@@ -180,7 +183,9 @@ func ListVersion() ([]string, error) {
 		list[i] = obj.Version
 	}
 
-	slices.Sort(list)
+	// Order by semantic version, not lexicographically: "v0.9" must come before
+	// "v0.31.2", and LatestVersion depends on the last element being the newest.
+	slices.SortFunc(list, semver.Compare)
 
 	versionList = list
 

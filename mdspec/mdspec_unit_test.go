@@ -4,6 +4,7 @@ import (
 	//nolint:gosec // use of md5 is intentional. not for cryptographic purposes
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"runtime"
 	"strings"
 	"sync"
@@ -153,6 +154,39 @@ func TestListVersion_returns_copy(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, "mutated_version", listAgain[0],
 		"the cached list should be a copy of the cache")
+}
+
+//nolint:paralleltest // do not parallelize due to dependency on other tests
+func TestListVersion_sorts_by_semver(t *testing.T) {
+	// Backup and defer restore the function
+	oldJSONUnmarshal := jsonUnmarshal
+
+	defer func() {
+		jsonUnmarshal = oldJSONUnmarshal
+	}()
+
+	// Clear cache, so that the mock below is actually reached
+	swapVersionList(t, nil)
+
+	// Mock/monkey patch to inject versions that a lexicographic sort would order
+	// incorrectly ("v0.100" < "v0.31.2" < "v0.4" < "v0.9" as plain strings)
+	jsonUnmarshal = func(_ []byte, target any) error {
+		return oldJSONUnmarshal([]byte(
+			`[{"version":"v0.100"},{"version":"v0.9"},{"version":"v0.31.2"},{"version":"v0.4"}]`,
+		), target)
+	}
+
+	list, err := ListVersion()
+	require.NoError(t, err)
+
+	require.Equal(t, []string{"v0.4", "v0.9", "v0.31.2", "v0.100"}, list,
+		"versions should be ordered by semantic version, not lexicographically")
+
+	latest, err := LatestVersion()
+	require.NoError(t, err)
+
+	require.Equal(t, "v0.100", latest,
+		"the latest version should be the highest semantic version")
 }
 
 func TestListVersion_contains_all(t *testing.T) {
@@ -353,7 +387,7 @@ func TestSpecCheck_spec_version_error(t *testing.T) {
 		assert.Contains(t, err.Error(), "spec_v0.1.json")
 	})
 
-	t.Run("unsupported spec version", func(t *testing.T) {
+	t.Run("forced unmarshal error", func(t *testing.T) {
 		err := SpecCheck("v0.13", myDummyFunc)
 
 		require.Error(t, err, "forced unmarshal error should return an error")
@@ -407,16 +441,13 @@ func TestSpecCheck_runs_concurrently(t *testing.T) {
 	maxReached := maxConcurrent.Load()
 	minExpected := int32(2)
 
-	if runtime.GOMAXPROCS(0) > 1 {
-		assert.GreaterOrEqual(t, maxReached, minExpected,
-			"expected at least %d concurrent goroutines, got %d (GOMAXPROCS=%d)",
-			minExpected, maxReached, runtime.GOMAXPROCS(0))
-	} else {
-		t.Logf("Skipping concurrency check: GOMAXPROCS=1")
+	if runtime.GOMAXPROCS(0) == 1 {
+		t.Skipf("concurrency cannot be observed with GOMAXPROCS=1 (max observed=%d)", maxReached)
 	}
 
-	t.Logf("Max concurrent goroutines observed: %d (GOMAXPROCS=%d)",
-		maxReached, runtime.GOMAXPROCS(0))
+	assert.GreaterOrEqualf(t, maxReached, minExpected,
+		"expected at least %d concurrent goroutines, got %d (GOMAXPROCS=%d)",
+		minExpected, maxReached, runtime.GOMAXPROCS(0))
 }
 
 func TestSpecCheck_concurrency_correctness(t *testing.T) {
@@ -458,10 +489,9 @@ func TestSpecCheck_concurrency_correctness(t *testing.T) {
 	require.NoError(t, err, "SpecCheck should succeed with correct function")
 
 	// Verify all test cases were executed
-	assert.Equal(t, len(testCases), int(executionCount.Load()),
-		"all test cases should be executed exactly once")
-
-	t.Logf("Successfully executed %d test cases concurrently", executionCount.Load())
+	assert.Equalf(t, len(testCases), int(executionCount.Load()),
+		"all test cases should be executed exactly once: expected %d executions, got %d",
+		len(testCases), executionCount.Load())
 }
 
 // ----------------------------------------------------------------------------
@@ -473,52 +503,60 @@ func TestSpecCheckWithConcurrency_sequential_execution(t *testing.T) {
 
 	testCases, expectedResults := prepareTestCasesMap(t, oldestSpecFile)
 
-	var (
-		executionCount atomic.Int32
-		maxConcurrent  atomic.Int32
-		currentRunning atomic.Int32
-	)
+	// Any negative limit must run sequentially. Note that a negative value handed
+	// to errgroup.SetLimit would mean "no limit" instead.
+	for _, maxConcurrency := range []int{-1, -8} {
+		t.Run(fmt.Sprintf("limit=%d", maxConcurrency), func(t *testing.T) {
+			t.Parallel()
 
-	// Function that tracks execution and should run sequentially
-	trackingFunc := func(markdown string) (string, error) {
-		current := currentRunning.Add(1)
-		executionCount.Add(1)
+			var (
+				executionCount atomic.Int32
+				maxConcurrent  atomic.Int32
+				currentRunning atomic.Int32
+			)
 
-		// Track max concurrent
-		for {
-			maxVal := maxConcurrent.Load()
-			if current <= maxVal || maxConcurrent.CompareAndSwap(maxVal, current) {
-				break
+			// Function that tracks execution and should run sequentially
+			trackingFunc := func(markdown string) (string, error) {
+				current := currentRunning.Add(1)
+				executionCount.Add(1)
+
+				// Track max concurrent
+				for {
+					maxVal := maxConcurrent.Load()
+					if current <= maxVal || maxConcurrent.CompareAndSwap(maxVal, current) {
+						break
+					}
+				}
+
+				// Small delay to ensure overlap would be detected if it happened
+				time.Sleep(1 * time.Millisecond)
+
+				currentRunning.Add(-1)
+
+				result, ok := expectedResults[markdown]
+				if !ok {
+					return "", errors.New("unexpected markdown")
+				}
+
+				return result, nil
 			}
-		}
 
-		// Small delay to ensure overlap would be detected if it happened
-		time.Sleep(1 * time.Millisecond)
+			err := SpecCheckWithConcurrency("v0.13", trackingFunc, maxConcurrency)
+			require.NoErrorf(t, err,
+				"sequential execution should succeed with maxConcurrency=%d", maxConcurrency)
 
-		currentRunning.Add(-1)
+			// Verify all tests were executed
+			assert.Equalf(t, len(testCases), int(executionCount.Load()),
+				"all test cases should be executed with maxConcurrency=%d: expected %d executions, got %d",
+				maxConcurrency, len(testCases), executionCount.Load())
 
-		result, ok := expectedResults[markdown]
-		if !ok {
-			return "", errors.New("unexpected markdown")
-		}
-
-		return result, nil
+			// Verify sequential execution (max concurrent should be 1)
+			assert.Equalf(t, int32(1), maxConcurrent.Load(),
+				"maxConcurrency=%d should run sequentially: expected max concurrency of 1, "+
+					"got %d over %d executed test cases",
+				maxConcurrency, maxConcurrent.Load(), executionCount.Load())
+		})
 	}
-
-	// Run with maxConcurrency=-1 (sequential)
-	err := SpecCheckWithConcurrency("v0.13", trackingFunc, -1)
-	require.NoError(t, err, "sequential execution should succeed")
-
-	// Verify all tests were executed
-	assert.Equal(t, len(testCases), int(executionCount.Load()),
-		"all test cases should be executed")
-
-	// Verify sequential execution (max concurrent should be 1)
-	assert.Equal(t, int32(1), maxConcurrent.Load(),
-		"sequential execution should have max concurrency of 1, got %d", maxConcurrent.Load())
-
-	t.Logf("Sequential execution: %d test cases with max concurrency=%d",
-		executionCount.Load(), maxConcurrent.Load())
 }
 
 func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
@@ -563,20 +601,19 @@ func TestSpecCheckWithConcurrency_custom_concurrency(t *testing.T) {
 	require.NoError(t, err, "custom concurrency execution should succeed")
 
 	// Verify all tests were executed
-	assert.Equal(t, len(testCases), int(executionCount.Load()),
-		"all test cases should be executed")
+	assert.Equalf(t, len(testCases), int(executionCount.Load()),
+		"all test cases should be executed with limit=%d: expected %d executions, got %d",
+		customLimit, len(testCases), executionCount.Load())
 
 	// Verify concurrency was limited to custom value
-	assert.LessOrEqual(t, maxConcurrent.Load(), int32(customLimit),
-		"max concurrency should not exceed custom limit of %d, got %d",
-		customLimit, maxConcurrent.Load())
+	assert.LessOrEqualf(t, maxConcurrent.Load(), int32(customLimit),
+		"max concurrency should not exceed custom limit of %d, got %d over %d executed test cases",
+		customLimit, maxConcurrent.Load(), executionCount.Load())
 
-	assert.GreaterOrEqual(t, maxConcurrent.Load(), int32(2),
-		"should have at least 2 concurrent executions with limit=%d, got %d",
-		customLimit, maxConcurrent.Load())
-
-	t.Logf("Custom concurrency (limit=%d): %d test cases with max observed=%d",
-		customLimit, executionCount.Load(), maxConcurrent.Load())
+	assert.GreaterOrEqualf(t, maxConcurrent.Load(), int32(2),
+		"should have at least 2 concurrent executions with limit=%d, got %d over %d executed "+
+			"test cases (GOMAXPROCS=%d)",
+		customLimit, maxConcurrent.Load(), executionCount.Load(), runtime.GOMAXPROCS(0))
 }
 
 func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
@@ -602,11 +639,10 @@ func TestSpecCheckWithConcurrency_auto_optimization(t *testing.T) {
 	require.NoError(t, err, "auto-optimized execution should succeed")
 
 	// Verify all tests were executed
-	assert.Equal(t, len(testCases), int(executionCount.Load()),
-		"all test cases should be executed")
-
-	t.Logf("Auto-optimized execution: %d test cases (GOMAXPROCS=%d)",
-		executionCount.Load(), runtime.GOMAXPROCS(0))
+	assert.Equalf(t, len(testCases), int(executionCount.Load()),
+		"all test cases should be executed with auto-optimized concurrency: "+
+			"expected %d executions, got %d (GOMAXPROCS=%d)",
+		len(testCases), executionCount.Load(), runtime.GOMAXPROCS(0))
 }
 
 func TestSpecCheckWithConcurrency_error_propagation(t *testing.T) {

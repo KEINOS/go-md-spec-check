@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD041 -->
-[![go1.22+](https://img.shields.io/badge/Go-1.22+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/KEINOS/go-md-spec-check)](https://github.com/KEINOS/go-md-spec-check/blob/main/go.mod "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document online")
 
 # Markdown Specification Checker for Go
@@ -9,7 +9,7 @@
 ## Usage
 
 ```go
-// Download module (go 1.22+)
+// Download module (go 1.25+)
 go get github.com/KEINOS/go-md-spec-check
 ```
 
@@ -18,7 +18,7 @@ go get github.com/KEINOS/go-md-spec-check
 import "github.com/KEINOS/go-md-spec-check/mdspec"
 ```
 
-In the below example, `mdspec.SpecCheck()` runs `myMarkdownParser()` against about 500-600 test cases over the CommonMark v0.30 specification. And returns the first error encountered that does not comply with the CommonMark specification.
+In the below example, `mdspec.SpecCheck()` runs `myMarkdownParser()` against about 650 test cases over the latest CommonMark specification. And returns an error for a test case that does not comply with the CommonMark specification.
 
 ```go
 import (
@@ -34,18 +34,20 @@ func Example() {
         return "<p>Hello, World!</p>", nil
     }
 
-    // Check if the `myMarkdownParser()` complies with the CommonMark specification
-    // version 0.30.
+    // Check if the `myMarkdownParser()` complies with the latest CommonMark
+    // specification.
     // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2" and "latest"
-    err := mdspec.SpecCheck("v0.30", myMarkdownParser)
+    err := mdspec.SpecCheck("latest", myMarkdownParser)
 
     if err != nil {
         fmt.Println(err.Error())
     }
-    // Output:
-    // error 1_Tabs: the given function did not return the expected HTML result.
-    // given markdown: "\tfoo\tbaz\t\tbim\n"
-    // expect HTML: "<pre><code>foo\tbaz\t\tbim\n</code></pre>\n"
+    // Sample output. The test cases run concurrently, so which non-compliant
+    // case is reported may differ between runs and machines:
+    //
+    // one or more tests failed: error 10_Tabs: the given function did not return the expected HTML result.
+    // given markdown: "#\tFoo\n"
+    // expect HTML: "<h1>Foo</h1>\n"
     // actual HTML: "<p>Hello, World!</p>"
 }
 ```
@@ -59,7 +61,7 @@ func Example() {
 
 ## Contributing
 
-[![go1.22+](https://img.shields.io/badge/Go-1.22+-blue?logo=go)](https://github.com/KEINOS/go-md-spec-check/blob/main/.github/workflows/unit-tests.yml#L81 "Supported versions")
+[![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/KEINOS/go-md-spec-check)](https://github.com/KEINOS/go-md-spec-check/blob/main/go.mod "Supported versions")
 [![Go Reference](https://pkg.go.dev/badge/github.com/KEINOS/go-md-spec-check.svg)](https://pkg.go.dev/github.com/KEINOS/go-md-spec-check/ "View document")
 [![Opened Issues](https://img.shields.io/github/issues/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/issues "opened issues")
 [![PR](https://img.shields.io/github/issues-pr/KEINOS/go-md-spec-check?color=lightblue&logo=github)](https://github.com/KEINOS/go-md-spec-check/pulls "Pull Requests")

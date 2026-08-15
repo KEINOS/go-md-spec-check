@@ -21,38 +21,37 @@ import "github.com/KEINOS/go-md-spec-check/mdspec"
 In the below example, `mdspec.SpecCheck()` runs `myMarkdownParser()` against about 650 test cases over the latest CommonMark specification. And returns an error for a test case that does not comply with the CommonMark specification.
 
 ```go
+package main
+
 import (
   "fmt"
-  "log"
 
   "github.com/KEINOS/go-md-spec-check/mdspec"
 )
 
 func Example() {
-    // Sample Markdown-to-HTML conversion function that does not do its job.
-    myMarkdownParser := func(markdown string) (string, error) {
-        return "<p>Hello, World!</p>", nil
-    }
+  // Sample Markdown-to-HTML conversion function that does not do its job.
+  myMarkdownParser := func(markdown string) (string, error) {
+    return "<p>Hello, World!</p>", nil
+  }
 
-    // Check if the `myMarkdownParser()` complies with the latest CommonMark
-    // specification.
-    // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2" and "latest"
-    err := mdspec.SpecCheck("latest", myMarkdownParser)
+  // Check if the `myMarkdownParser()` complies with the latest CommonMark
+  // specification.
+  // Choices: "v0.13", "v0.14" ... "v0.30", "v0.31.2" and "latest"
+  err := mdspec.SpecCheck("latest", myMarkdownParser)
 
-    if err != nil {
-        fmt.Println(err.Error())
-    }
-    // Sample output. The test cases run concurrently, so which non-compliant
-    // case is reported may differ between runs and machines:
-    //
-    // one or more tests failed: error 10_Tabs: the given function did not return the expected HTML result.
-    // given markdown: "#\tFoo\n"
-    // expect HTML: "<h1>Foo</h1>\n"
-    // actual HTML: "<p>Hello, World!</p>"
+  if err != nil {
+    fmt.Println(err.Error())
+  }
+  // Output:
+  // one or more tests failed: error 8_Tabs: the given function did not return the expected HTML result.
+  // given markdown: "    foo\n\tbar\n"
+  // expect HTML: "<pre><code>foo\nbar\n</code></pre>\n"
+  // actual HTML: "<p>Hello, World!</p>"
 }
 ```
 
-- [View it online](https://go.dev/play/p/cvzhbhEx_QG) @ Go Playground
+- [View it online](https://go.dev/play/p/hegXXySIaAm) @ Go Playground
 - Supported CommonMark spec versions:
   - CommonMark [v0.13](https://spec.commonmark.org/0.13/) to [latest](https://spec.commonmark.org/current/))
 - References on CommonMark:

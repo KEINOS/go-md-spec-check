@@ -8,13 +8,15 @@
 
 set -eu
 
+MIN_GO_VERSION=1.26.0
+
 echo '* Backup modules ...'
 cp go.mod go.mod.bak
 cp go.sum go.sum.bak
 
 echo '* Run go tidy ...'
 go get -u ./...
-go mod tidy -go=1.25.0
+go mod tidy -go=${MIN_GO_VERSION}
 
 echo '* Run tests ...'
 go test ./... && {

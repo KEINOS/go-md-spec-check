@@ -1,5 +1,5 @@
 # =============================================================================
-# Docker Compose file for testing on Go versions 1.25 to the latest.
+# Docker Compose file for testing
 # =============================================================================
 # Usage:
 #     $ # Build all the containers
@@ -38,6 +38,9 @@ services:
     build:
       context: .
       dockerfile: ./.github/Dockerfile
+      args:
+        # Set the Go version to the latest
+        VARIANT: 1.26.0-alpine
     volumes:
       - .:/workspaces
       - GO_PKG_MOD:/go/pkg/mod
@@ -46,9 +49,6 @@ services:
     build:
       context: .
       dockerfile: ./.github/Dockerfile
-      args:
-        # Set the Go version to the latest
-        VARIANT: alpine
     volumes:
       - .:/workspaces
       - GO_PKG_MOD:/go/pkg/mod

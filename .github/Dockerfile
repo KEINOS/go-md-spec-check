@@ -2,7 +2,7 @@
 #  Unit Test Container for Vaious Go Versions (Last Updated: 2022-08-05)
 # =============================================================================
 # Default version: minimum supported Go version
-ARG VARIANT="1.25-alpine"
+ARG VARIANT="alpine"
 
 # -----------------------------------------------------------------------------
 #  Main Stage
